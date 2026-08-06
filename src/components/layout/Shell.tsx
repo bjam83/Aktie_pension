@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { NAV_ITEMS } from "./nav-items";
 import { signOutAction } from "@/lib/actions/auth";
+
+const MORE_ICON = "M12 6.5v.01M12 12v.01M12 17.5v.01";
 
 export function Shell({
   householdName,
@@ -13,6 +16,12 @@ export function Shell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const closeMore = () => setMoreOpen(false);
+
+  const primaryItems = NAV_ITEMS.filter((i) => i.primary);
+  const secondaryItems = NAV_ITEMS.filter((i) => !i.primary);
+  const isSecondaryActive = secondaryItems.some((i) => i.href === pathname);
 
   return (
     <div className="min-h-screen">
@@ -40,16 +49,36 @@ export function Shell({
         <main className="pb-16">{children}</main>
       </div>
 
+      {moreOpen && <button className="bnav-backdrop" aria-label="Luk menu" onClick={() => setMoreOpen(false)} />}
+
       <nav className="bnav">
+        {moreOpen && (
+          <div className="bnav-sheet">
+            {secondaryItems.map((item) => (
+              <Link key={item.href} href={item.href} className="bnav-sheet-item" data-active={pathname === item.href} onClick={closeMore}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={item.icon} />
+                </svg>
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        )}
         <div className="bnav-inner">
-          {NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href} className="bnav-btn" data-active={pathname === item.href}>
+          {primaryItems.map((item) => (
+            <Link key={item.href} href={item.href} className="bnav-btn" data-active={pathname === item.href} onClick={closeMore}>
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d={item.icon} />
               </svg>
               {item.label}
             </Link>
           ))}
+          <button className="bnav-btn" type="button" data-active={isSecondaryActive || moreOpen} onClick={() => setMoreOpen((v) => !v)}>
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+              <path d={MORE_ICON} />
+            </svg>
+            Mere
+          </button>
         </div>
       </nav>
     </div>

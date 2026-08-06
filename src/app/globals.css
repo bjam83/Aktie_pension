@@ -305,34 +305,78 @@ body {
   background: var(--surface);
   border-top: 1px solid var(--line);
   z-index: 200;
-  padding: 6px 0 env(safe-area-inset-bottom, 8px);
+  padding: 4px 0 env(safe-area-inset-bottom, 6px);
+  /* iOS Safari resizes the visual viewport as its own toolbar shows/hides;
+     anchoring to the layout viewport keeps this bar from jumping mid-scroll. */
+  -webkit-transform: translateZ(0);
 }
 
 .bnav-inner {
   display: flex;
-  justify-content: space-around;
-  overflow-x: auto;
+  justify-content: space-evenly;
+  align-items: stretch;
+  max-width: 520px;
+  margin: 0 auto;
 }
 
 .bnav-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  gap: 4px;
+  flex: 1 1 0;
   border: none;
   background: none;
   cursor: pointer;
-  padding: 6px 8px;
-  font-size: 9.5px;
+  padding: 7px 4px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 10.5px;
   font-weight: 500;
   color: var(--faint);
-  min-width: 54px;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
 
 .bnav-btn[data-active="true"] {
   color: var(--grow);
+}
+
+.bnav-backdrop {
+  position: fixed;
+  inset: 0;
+  border: none;
+  padding: 0;
+  background: rgba(28, 42, 39, 0.28);
+  z-index: 199;
+  cursor: default;
+}
+
+.bnav-sheet {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  padding: 12px 12px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.bnav-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.bnav-sheet-item[data-active="true"] {
+  color: var(--grow);
+  border-color: var(--grow);
 }
 
 @media (max-width: 860px) {
