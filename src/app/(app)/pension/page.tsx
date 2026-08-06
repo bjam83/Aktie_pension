@@ -8,6 +8,7 @@ import { LineAreaChart } from "@/components/charts/LineAreaChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { SchemeCard } from "./SchemeCard";
 import { AddSchemeForm } from "./AddSchemeForm";
+import { PersonPensionHeader } from "./PersonPensionHeader";
 
 export default async function PensionPage() {
   const bundle = await getHouseholdBundle();
@@ -88,12 +89,10 @@ export default async function PensionPage() {
 
       {persons.map((p, i) => {
         const list = schemesByPerson.get(p.id) ?? [];
+        const pensionNow = list.reduce((s, sc) => s + Number(sc.current_value), 0);
         return (
           <div key={p.id} className="grid gap-3">
-            <div className="flex items-center gap-2">
-              <span className="dot" style={{ background: personColor(i) }} />
-              <h3 style={{ margin: 0, fontFamily: "var(--font-display)" }}>{p.name}s ordninger</h3>
-            </div>
+            <PersonPensionHeader person={p} pensionNow={pensionNow} color={personColor(i)} />
             {list.length === 0 && <div className="empty">Ingen ordninger endnu.</div>}
             <div className="grid cols-2 gap-[16px]">
               {list.map((s) => (

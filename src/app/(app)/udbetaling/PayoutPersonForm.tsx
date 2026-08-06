@@ -13,9 +13,8 @@ export function PayoutPersonForm({ personId, cfg }: { personId: string; cfg: Pay
   return (
     <form action={formAction} className="grid gap-3 cols-3">
       <input type="hidden" name="person_id" value={personId} />
-      <MoneyField label="Overstyr formue ved pension (valgfrit)" name="potOverride" defaultValue={cfg.potOverride ?? ""} />
       <div className="field">
-        <label htmlFor={`years-${personId}`}>Antal udbetalingsår</label>
+        <label htmlFor={`years-${personId}`}>Udbetalingsår (aldersopsparing, arbejdsmarkedspension mv.)</label>
         <input className="input" id={`years-${personId}`} name="years" type="number" defaultValue={cfg.years} />
       </div>
       <div className="field">

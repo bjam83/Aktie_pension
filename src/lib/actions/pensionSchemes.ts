@@ -13,6 +13,14 @@ function num(formData: FormData, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/** Udbetalingslængde er kun relevant for ratepension, og skal ligge mellem 10 og 25 år. */
+function payoutYears(formData: FormData, schemeType: string): number | null {
+  if (schemeType !== "ratepension") return null;
+  const raw = Number(formData.get("payout_years"));
+  const n = Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 15;
+  return Math.min(25, Math.max(10, n));
+}
+
 export async function addSchemeAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
   const {
@@ -23,20 +31,23 @@ export async function addSchemeAction(_prev: FormState, formData: FormData): Pro
   const name = String(formData.get("name") || "").trim();
   const person_id = String(formData.get("person_id") || "");
   if (!name || !person_id) return { error: "Udfyld navn og vælg person." };
+  const scheme_type = String(formData.get("scheme_type") || "ratepension");
 
   const { error } = await supabase.from("pension_schemes").insert({
     household_id: user.id,
     person_id,
     name,
-    scheme_type: String(formData.get("scheme_type") || "ratepension"),
+    scheme_type,
     provider: String(formData.get("provider") || "") || null,
     current_value: num(formData, "current_value"),
     monthly_contribution: num(formData, "monthly_contribution"),
     expected_return_pct: num(formData, "expected_return_pct", 6),
+    payout_years: payoutYears(formData, scheme_type),
   });
   if (error) return { error: error.message };
 
   revalidatePath("/pension");
+  revalidatePath("/udbetaling");
   revalidatePath("/", "layout");
   return {};
 }
@@ -50,25 +61,28 @@ export async function updateSchemeAction(_prev: FormState, formData: FormData): 
 
   const fetchedRaw = formData.get("fetched_return_pct");
   const fetched_return_pct = fetchedRaw === "" || fetchedRaw == null ? null : Number(fetchedRaw);
+  const scheme_type = String(formData.get("scheme_type") || "ratepension");
 
   const { error } = await supabase
     .from("pension_schemes")
     .update({
       name,
       person_id,
-      scheme_type: String(formData.get("scheme_type") || "ratepension"),
+      scheme_type,
       provider: String(formData.get("provider") || "") || null,
       current_value: num(formData, "current_value"),
       monthly_contribution: num(formData, "monthly_contribution"),
       expected_return_pct: num(formData, "expected_return_pct", 6),
       fetched_return_pct,
       return_basis: String(formData.get("return_basis") || "historical"),
+      payout_years: payoutYears(formData, scheme_type),
       notes: String(formData.get("notes") || "") || null,
     })
     .eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/pension");
+  revalidatePath("/udbetaling");
   revalidatePath("/", "layout");
   return {};
 }

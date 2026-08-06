@@ -75,3 +75,95 @@ export function simulatePayout(input: PayoutInput, a: Assumptions): PayoutResult
     totalGross: (grossTaxable + grossFree) * n,
   };
 }
+
+// ── Multi-stream payout (per pension scheme, own duration) ───────────────
+
+export interface PayoutStreamInput {
+  key: string;
+  label: string;
+  pot: number;
+  /** Udbetalingsår for netop denne ordning — ratepension har sin egen (10-25), livrente er typisk 80-startAge. */
+  years: number;
+  taxFree: boolean;
+}
+
+export interface PayoutStreamResult extends PayoutStreamInput {
+  grossAnnual: number;
+}
+
+export interface MultiPayoutResult {
+  streams: PayoutStreamResult[];
+  pot: number;
+  grossAnnual: number;
+  grossTaxableTotal: number;
+  grossFreeTotal: number;
+  taxOnPayout: number;
+  netAnnual: number;
+  netMonthly: number;
+  effRate: number;
+  series: PayoutYear[];
+  totalNet: number;
+}
+
+function annuityPayment(pv: number, years: number, r: number): number {
+  const n = Math.max(1, Math.round(years) || 1);
+  if (pv <= 0) return 0;
+  return Math.abs(r) < 1e-9 ? pv / n : (pv * r) / (1 - Math.pow(1 + r, -n));
+}
+
+/**
+ * Udbetaler hver ordning over sin egen periode i stedet for én fælles pulje — så en
+ * ratepension der stopper efter fx 15 år kan ses adskilt fra en livrente der fortsætter
+ * langt længere. Effektiv skattesats beregnes ud fra det samlede skattepligtige beløb i
+ * år 1 og holdes fast år for år (en rimelig forenkling, da præcis progressiv genberegning
+ * hvert år kræver at kende al anden fremtidig indkomst).
+ */
+export function simulateMultiPayout(streamsIn: PayoutStreamInput[], retPct: number, otherIncome: number, palRatePct: number, startAge: number, a: Assumptions): MultiPayoutResult {
+  const r = (retPct / 100) * (1 - palRatePct / 100);
+  const streams: PayoutStreamResult[] = streamsIn.map((s) => ({ ...s, grossAnnual: annuityPayment(s.pot, s.years, r) }));
+
+  const grossTaxableTotal = streams.filter((s) => !s.taxFree).reduce((sum, s) => sum + s.grossAnnual, 0);
+  const grossFreeTotal = streams.filter((s) => s.taxFree).reduce((sum, s) => sum + s.grossAnnual, 0);
+  const taxOnPayout = incomeTax(otherIncome + grossTaxableTotal, a) - incomeTax(otherIncome, a);
+  const netAnnual = grossTaxableTotal - taxOnPayout + grossFreeTotal;
+  const effRate = grossTaxableTotal > 0 ? taxOnPayout / grossTaxableTotal : 0;
+
+  const maxYears = Math.max(1, ...streams.map((s) => Math.round(s.years)));
+  let balances = streams.map((s) => s.pot);
+  let cumNet = 0;
+  let cumTax = 0;
+  const series: PayoutYear[] = [{ age: startAge, remaining: Math.round(balances.reduce((sum, b) => sum + b, 0)), cumNet: 0, cumTax: 0 }];
+
+  for (let y = 1; y <= maxYears; y++) {
+    let yearNet = 0;
+    let yearTax = 0;
+    balances = balances.map((bal, i) => {
+      const s = streams[i];
+      const n = Math.max(1, Math.round(s.years));
+      if (y > n) return 0;
+      if (s.taxFree) yearNet += s.grossAnnual;
+      else {
+        yearNet += s.grossAnnual * (1 - effRate);
+        yearTax += s.grossAnnual * effRate;
+      }
+      return Math.max(0, bal * (1 + r) - s.grossAnnual);
+    });
+    cumNet += yearNet;
+    cumTax += yearTax;
+    series.push({ age: startAge + y, remaining: Math.round(balances.reduce((sum, b) => sum + b, 0)), cumNet: Math.round(cumNet), cumTax: Math.round(cumTax) });
+  }
+
+  return {
+    streams,
+    pot: streams.reduce((sum, s) => sum + s.pot, 0),
+    grossAnnual: grossTaxableTotal + grossFreeTotal,
+    grossTaxableTotal,
+    grossFreeTotal,
+    taxOnPayout,
+    netAnnual,
+    netMonthly: netAnnual / 12,
+    effRate,
+    series,
+    totalNet: cumNet,
+  };
+}

@@ -361,29 +361,38 @@ export type Database = {
         Row: {
           broker: string | null
           created_at: string
+          expected_return_pct: number
           household_id: string
           id: string
           kind: string
+          monthly_contribution: number
           name: string
           person_id: string | null
+          projection_years: number
         }
         Insert: {
           broker?: string | null
           created_at?: string
+          expected_return_pct?: number
           household_id: string
           id?: string
           kind?: string
+          monthly_contribution?: number
           name: string
           person_id?: string | null
+          projection_years?: number
         }
         Update: {
           broker?: string | null
           created_at?: string
+          expected_return_pct?: number
           household_id?: string
           id?: string
           kind?: string
+          monthly_contribution?: number
           name?: string
           person_id?: string | null
+          projection_years?: number
         }
         Relationships: [
           {
@@ -493,6 +502,7 @@ export type Database = {
           name: string
           notes: string | null
           payout_start_age: number | null
+          payout_years: number | null
           person_id: string
           provider: string | null
           return_basis: string
@@ -510,6 +520,7 @@ export type Database = {
           name: string
           notes?: string | null
           payout_start_age?: number | null
+          payout_years?: number | null
           person_id: string
           provider?: string | null
           return_basis?: string
@@ -527,6 +538,7 @@ export type Database = {
           name?: string
           notes?: string | null
           payout_start_age?: number | null
+          payout_years?: number | null
           person_id?: string
           provider?: string | null
           return_basis?: string
@@ -682,7 +694,6 @@ export interface FreeFundsConfig {
 }
 
 export interface PayoutConfig {
-  potOverride: number | null
   years: number
   ret: number
   otherIncome: number

@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
-import { getHouseholdBundle, getBudgetItems, getIncomeStreams, getAssets, getLiabilities, getPensionSchemes } from "@/lib/data";
+import { getHouseholdBundle, getBudgetItems, getIncomeStreams, getAssets, getLiabilities, getPensionSchemes, getInvestmentAccounts, getHoldings } from "@/lib/data";
 import { ageFromBirthDate, projectHousehold, schemeReturnPct, type SchemeCalcInput } from "@/lib/finance/pension";
-import { simulateFreeFunds } from "@/lib/finance/freeFunds";
+import { simulateFreeFunds, combineFreeFunds } from "@/lib/finance/freeFunds";
+import { portfolioReturn } from "@/lib/finance/holdings";
 import { projectNetWorth, type AssetGrowthInput } from "@/lib/finance/netWorth";
 import { fmtKr } from "@/lib/finance/format";
 import { toMonthly, LIABILITY_KIND_OPTIONS, INCOME_KIND_OPTIONS, labelFor } from "@/lib/constants";
 import { removeLiabilityAction, removeIncomeStreamAction } from "@/lib/actions/budget";
 import { LineAreaChart } from "@/components/charts/LineAreaChart";
-import type { AssetKind, FreeFundsConfig } from "@/lib/types";
+import type { AssetKind } from "@/lib/types";
 import { BudgetItemRow } from "./BudgetItemRow";
 import { AssetRow } from "./AssetRow";
 import { AddBudgetItemForm, AddAssetForm, AddLiabilityForm, AddIncomeStreamForm } from "./AddForms";
@@ -15,13 +16,15 @@ import { AddBudgetItemForm, AddAssetForm, AddLiabilityForm, AddIncomeStreamForm 
 export default async function BudgetPage() {
   const bundle = await getHouseholdBundle();
   if (!bundle) redirect("/login");
-  const { persons, assumptions, planningSettings } = bundle;
-  const [budgetItems, incomeStreams, assets, liabilities, schemes] = await Promise.all([
+  const { persons, assumptions } = bundle;
+  const [budgetItems, incomeStreams, assets, liabilities, schemes, accounts, holdings] = await Promise.all([
     getBudgetItems(),
     getIncomeStreams(),
     getAssets(),
     getLiabilities(),
     getPensionSchemes(),
+    getInvestmentAccounts(),
+    getHoldings(),
   ]);
 
   const personName = (id: string | null) => persons.find((p) => p.id === id)?.name ?? "Fælles";
@@ -37,8 +40,27 @@ export default async function BudgetPage() {
 
   // ── Net worth today ──────────────────────────────────────────────────
   const pensionNow = schemes.reduce((s, sc) => s + Number(sc.current_value), 0);
-  const ffCfg = planningSettings.free_funds as unknown as FreeFundsConfig;
-  const sim = simulateFreeFunds(ffCfg, assumptions, assumptions.inflation_rate);
+  const holdingsByAccount = new Map<string, typeof holdings>();
+  holdings.forEach((h) => {
+    const list = holdingsByAccount.get(h.account_id) ?? [];
+    list.push(h);
+    holdingsByAccount.set(h.account_id, list);
+  });
+  const accountSims = accounts.map((acc) =>
+    simulateFreeFunds(
+      {
+        lump: portfolioReturn(holdingsByAccount.get(acc.id) ?? []).marketValue,
+        monthly: Number(acc.monthly_contribution),
+        ret: Number(acc.expected_return_pct),
+        years: Number(acc.projection_years),
+        tax: acc.kind === "aktiesparekonto" ? "ask" : "depot",
+      },
+      assumptions,
+      assumptions.inflation_rate
+    )
+  );
+  const frieMidlerNow = accountSims.reduce((s, r) => s + r.series[0].nominal, 0);
+  const sim = combineFreeFunds(accountSims);
   const liabilitiesTotal = liabilities.reduce((s, l) => s + Number(l.remaining_debt), 0);
 
   const assetsByKind = (kind: AssetKind | "andet-samlet") =>
@@ -65,7 +87,7 @@ export default async function BudgetPage() {
   });
   const proj = calcInputs.length ? projectHousehold(calcInputs, assumptions.pal_rate, assumptions.inflation_rate) : null;
 
-  const netWorthNow = pensionNow + Number(ffCfg.lump || 0) + equityNow;
+  const netWorthNow = pensionNow + frieMidlerNow + equityNow;
 
   // ── Net worth over time ──────────────────────────────────────────────
   const horizonYears = Math.max(proj?.horizonYears || 0, sim.years || 0);
@@ -225,7 +247,7 @@ export default async function BudgetPage() {
             </div>
             <div className="flex justify-between text-[13px] mb-1">
               <span>Frie midler</span>
-              <span className="num">{fmtKr(ffCfg.lump || 0)}</span>
+              <span className="num">{fmtKr(frieMidlerNow)}</span>
             </div>
             <div className="flex justify-between text-[13px] mb-1">
               <span>Ejendomme</span>

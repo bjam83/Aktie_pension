@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { updateSchemeAction, removeSchemeAction, type FormState } from "@/lib/actions/pensionSchemes";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { MoneyField } from "@/components/ui/MoneyField";
@@ -13,6 +13,7 @@ const initialState: FormState = {};
 
 export function SchemeCard({ scheme, persons, color }: { scheme: PensionScheme; persons: Person[]; color: string }) {
   const [state, formAction, pending] = useActionState(updateSchemeAction, initialState);
+  const [schemeType, setSchemeType] = useState(scheme.scheme_type);
   const eff = schemeReturnPct(scheme);
   const hasYtd = scheme.fetched_return_pct != null;
 
@@ -28,7 +29,16 @@ export function SchemeCard({ scheme, persons, color }: { scheme: PensionScheme; 
       <form action={formAction} className="grid gap-3 cols-2">
         <input type="hidden" name="id" value={scheme.id} />
         <TextField label="Navn" name="name" defaultValue={scheme.name} required />
-        <SelectField label="Type" name="scheme_type" defaultValue={scheme.scheme_type} options={SCHEME_TYPE_OPTIONS} />
+        <div className="field">
+          <label htmlFor={`type-${scheme.id}`}>Type</label>
+          <select className="input" id={`type-${scheme.id}`} name="scheme_type" value={schemeType} onChange={(e) => setSchemeType(e.target.value)}>
+            {SCHEME_TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <SelectField
           label="Ejer"
           name="person_id"
@@ -71,6 +81,25 @@ export function SchemeCard({ scheme, persons, color }: { scheme: PensionScheme; 
           </div>
         </div>
         <SelectField label="Fremskriv med" name="return_basis" defaultValue={scheme.return_basis} options={hasYtd ? RETURN_BASIS_OPTIONS : [RETURN_BASIS_OPTIONS[0]]} />
+        {schemeType === "ratepension" && (
+          <div className="field">
+            <label htmlFor={`payout-years-${scheme.id}`}>Udbetalingslængde</label>
+            <div className="relative">
+              <input
+                className="input pr-9"
+                id={`payout-years-${scheme.id}`}
+                name="payout_years"
+                type="number"
+                min={10}
+                max={25}
+                defaultValue={scheme.payout_years ?? 15}
+              />
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none" style={{ color: "var(--faint)" }}>
+                år
+              </span>
+            </div>
+          </div>
+        )}
         <TextField label="Note" name="notes" defaultValue={scheme.notes} />
         <div className="flex items-end gap-2 col-span-2">
           <button className="btn" type="submit" disabled={pending}>

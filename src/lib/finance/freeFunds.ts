@@ -70,3 +70,22 @@ export function simulateFreeFunds(cfg: FreeFundsConfig, a: Assumptions, inflatio
     taxPaid,
   };
 }
+
+/**
+ * Lægger flere kontoprognoser sammen på en fælles kalenderårs-akse — hver konto holder sin
+ * værdi flad efter sin egen fremskrivningsperiode, ligesom pensionsordninger.
+ */
+export function combineFreeFunds(results: FreeFundsResult[]): { series: { year: number; nominal: number }[]; finalNominal: number; years: number } {
+  const currentYear = new Date().getFullYear();
+  const years = Math.max(0, ...results.map((r) => r.years));
+  const series: { year: number; nominal: number }[] = [];
+  for (let k = 0; k <= years; k++) {
+    let nominal = 0;
+    results.forEach((r) => {
+      const idx = Math.min(k, r.series.length - 1);
+      nominal += r.series[idx]?.nominal ?? r.finalNominal;
+    });
+    series.push({ year: currentYear + k, nominal });
+  }
+  return { series, finalNominal: results.reduce((s, r) => s + r.finalNominal, 0), years };
+}

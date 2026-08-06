@@ -12,16 +12,18 @@ import {
 } from "@/lib/data";
 import { ageFromBirthDate, projectHousehold, schemeReturnPct, type SchemeCalcInput } from "@/lib/finance/pension";
 import { portfolioReturn } from "@/lib/finance/holdings";
+import { simulateFreeFunds, combineFreeFunds } from "@/lib/finance/freeFunds";
+import { projectNetWorth, type AssetGrowthInput } from "@/lib/finance/netWorth";
 import { fmtKr, fmtPct } from "@/lib/finance/format";
 import { toMonthly, personColor } from "@/lib/constants";
 import { Stat } from "@/components/ui/Stat";
 import { LineAreaChart } from "@/components/charts/LineAreaChart";
-import type { FreeFundsConfig } from "@/lib/types";
+import type { AssetKind } from "@/lib/types";
 
 export default async function DashboardPage() {
   const bundle = await getHouseholdBundle();
   if (!bundle) redirect("/login");
-  const { persons, assumptions, planningSettings } = bundle;
+  const { persons, assumptions } = bundle;
 
   const [schemes, holdings, accounts, budgetItems, incomeStreams, assets, liabilities] = await Promise.all([
     getPensionSchemes(),
@@ -32,7 +34,6 @@ export default async function DashboardPage() {
     getAssets(),
     getLiabilities(),
   ]);
-  void accounts;
 
   const calcInputs: SchemeCalcInput[] = schemes.map((s) => {
     const person = persons.find((p) => p.id === s.person_id);
@@ -49,14 +50,33 @@ export default async function DashboardPage() {
   });
   const proj = calcInputs.length ? projectHousehold(calcInputs, assumptions.pal_rate, assumptions.inflation_rate) : null;
 
-  const ffCfg = planningSettings.free_funds as unknown as FreeFundsConfig;
+  const holdingsByAccount = new Map<string, typeof holdings>();
+  holdings.forEach((h) => {
+    const list = holdingsByAccount.get(h.account_id) ?? [];
+    list.push(h);
+    holdingsByAccount.set(h.account_id, list);
+  });
+  const accountSims = accounts.map((acc) =>
+    simulateFreeFunds(
+      {
+        lump: portfolioReturn(holdingsByAccount.get(acc.id) ?? []).marketValue,
+        monthly: Number(acc.monthly_contribution),
+        ret: Number(acc.expected_return_pct),
+        years: Number(acc.projection_years),
+        tax: acc.kind === "aktiesparekonto" ? "ask" : "depot",
+      },
+      assumptions,
+      assumptions.inflation_rate
+    )
+  );
+  const frieMidlerSim = combineFreeFunds(accountSims);
 
   const invReturn = portfolioReturn(holdings);
   const pensionNow = schemes.reduce((s, sc) => s + Number(sc.current_value), 0);
   const assetsTotal = assets.reduce((s, a) => s + Number(a.value), 0);
   const liabilitiesTotal = liabilities.reduce((s, l) => s + Number(l.remaining_debt), 0);
   const equity = assetsTotal - liabilitiesTotal;
-  const netWorthNow = pensionNow + invReturn.marketValue + Number(ffCfg.lump || 0) + equity;
+  const netWorthNow = pensionNow + invReturn.marketValue + equity;
 
   const monthlyIncome =
     incomeStreams.reduce((s, i) => s + toMonthly(Number(i.amount), i.frequency), 0) +
@@ -64,12 +84,17 @@ export default async function DashboardPage() {
   const monthlyExpenses = budgetItems.filter((b) => b.direction === "ud").reduce((s, b) => s + toMonthly(Number(b.amount), b.frequency), 0);
   const surplus = monthlyIncome - monthlyExpenses;
 
-  const chartData = proj
-    ? proj.series.map((y) => {
-        const row: Record<string, number> = { year: y.year, total: y.total, real: y.real };
-        return row;
-      })
-    : [];
+  // ── Samlet formue over tid ─────────────────────────────────────────────
+  const horizonYears = Math.max(proj?.horizonYears || 0, frieMidlerSim.years || 0);
+  const assetGrowthInputs: AssetGrowthInput[] = assets.map((a) => ({
+    kind: a.kind as AssetKind,
+    value: Number(a.value),
+    growthRatePct: Number(a.growth_rate_pct),
+  }));
+  const netWorthSeries =
+    horizonYears >= 1
+      ? projectNetWorth(proj?.series.map((y) => ({ year: y.year, total: y.total })) ?? [], frieMidlerSim.series, assetGrowthInputs, liabilitiesTotal, horizonYears)
+      : [];
 
   return (
     <div className="grid gap-[18px]">
@@ -77,7 +102,7 @@ export default async function DashboardPage() {
         <Stat label="Nettoformue i dag" value={fmtKr(netWorthNow)} color="var(--grow)" />
         <Stat label="Pension i alt" value={fmtKr(pensionNow)} hint={proj ? `${fmtKr(proj.totals.finalNominal)} ved pension` : undefined} />
         <Stat
-          label="Investeringer"
+          label="Frie midler"
           value={fmtKr(invReturn.marketValue)}
           hint={invReturn.gainPct == null ? undefined : `${invReturn.gain >= 0 ? "+" : ""}${fmtPct(invReturn.gainPct)} afkast`}
           color={invReturn.gain >= 0 ? "var(--grow)" : "var(--real)"}
@@ -85,19 +110,26 @@ export default async function DashboardPage() {
         <Stat label="Månedligt rådighedsbeløb" value={fmtKr(surplus)} color={surplus >= 0 ? "var(--grow)" : "var(--real)"} />
       </div>
 
-      {proj && chartData.length >= 2 && (
+      {netWorthSeries.length >= 2 ? (
         <div className="card">
-          <h3>Husstandens pension — fremskrivning</h3>
-          <p className="cap">Samlet formue for hele husstanden frem mod sidste pensionsalder.</p>
+          <h3>Samlet formue over tid</h3>
+          <p className="cap">Areal = sammensætning af formuen · stiplet linje = samlet nettoformue (efter gæld).</p>
           <LineAreaChart
-            data={chartData}
+            data={netWorthSeries as unknown as Record<string, number>[]}
             series={[
-              { key: "total", name: "Samlet pension", stroke: "var(--grow)", fill: "var(--grow-soft)", fillOp: 0.6 },
-              { key: "real", name: "Nutidsværdi", stroke: "var(--real)", width: 2.2, dashed: true },
+              { key: "pension", name: "Pension", stroke: "var(--grow)", fill: "var(--grow-soft)", fillOp: 0.85 },
+              { key: "frieMidler", name: "Frie midler", stroke: "var(--amber)", fill: "var(--amber-soft)", fillOp: 0.85 },
+              { key: "ejendomme", name: "Ejendomme", stroke: "var(--s2)", fill: "var(--s2-soft)", fillOp: 0.85 },
+              { key: "biler", name: "Biler", stroke: "var(--real)", fill: "#D79A7C", fillOp: 0.85 },
+              { key: "andre", name: "Andre aktiver", stroke: "var(--indbetalt)", fill: "var(--indbetalt)", fillOp: 0.6 },
+              { key: "netWorth", name: "Nettoformue (efter gæld)", stroke: "var(--ink)", width: 2.4, dashed: true },
             ]}
             xKey="year"
+            height={300}
           />
         </div>
+      ) : (
+        <div className="note">Tilføj pension, frie midler eller aktiver for at se den samlede formue som graf over tid.</div>
       )}
 
       <div className="grid cols-2 gap-[16px]">
@@ -126,8 +158,8 @@ export default async function DashboardPage() {
         <Link href="/pension" className="btn ghost" style={{ justifyContent: "center" }}>
           Se pension →
         </Link>
-        <Link href="/investeringer" className="btn ghost" style={{ justifyContent: "center" }}>
-          Se investeringer →
+        <Link href="/frie-midler" className="btn ghost" style={{ justifyContent: "center" }}>
+          Se frie midler →
         </Link>
         <Link href="/budget" className="btn ghost" style={{ justifyContent: "center" }}>
           Se budget →

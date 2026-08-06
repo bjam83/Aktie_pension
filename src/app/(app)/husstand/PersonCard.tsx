@@ -29,10 +29,6 @@ export function PersonCard({ person, canRemove }: { person: Person; canRemove: b
           <label htmlFor={`birth-${person.id}`}>Fødselsdato</label>
           <input className="input" id={`birth-${person.id}`} name="birth_date" type="date" defaultValue={person.birth_date ?? ""} />
         </div>
-        <div className="field">
-          <label htmlFor={`retire-${person.id}`}>Forventet pensionsalder</label>
-          <input className="input" id={`retire-${person.id}`} name="retirement_age" type="number" defaultValue={person.retirement_age} min={50} max={80} />
-        </div>
         <div className="flex items-end gap-2">
           <button className="btn" type="submit" disabled={pending}>
             {pending ? "Gemmer…" : "Gem"}

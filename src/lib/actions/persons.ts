@@ -27,13 +27,27 @@ export async function updatePersonAction(_prev: FormState, formData: FormData): 
   const id = String(formData.get("id") || "");
   const name = String(formData.get("name") || "").trim();
   const birth_date = String(formData.get("birth_date") || "") || null;
-  const retirement_age = Number(formData.get("retirement_age")) || 68;
 
   if (!name) return { error: "Navn må ikke være tomt." };
 
-  const { error } = await supabase.from("persons").update({ name, birth_date, retirement_age }).eq("id", id);
+  const { error } = await supabase.from("persons").update({ name, birth_date }).eq("id", id);
   if (error) return { error: error.message };
 
+  revalidatePath("/", "layout");
+  return {};
+}
+
+/** Pensionsalder redigeres fra Pension-fanen, adskilt fra navn/fødselsdato på Husstand. */
+export async function updateRetirementAgeAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const supabase = await createClient();
+  const id = String(formData.get("id") || "");
+  const retirement_age = Math.min(80, Math.max(50, Number(formData.get("retirement_age")) || 68));
+
+  const { error } = await supabase.from("persons").update({ retirement_age }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/pension");
+  revalidatePath("/udbetaling");
   revalidatePath("/", "layout");
   return {};
 }
