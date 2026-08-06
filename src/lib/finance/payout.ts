@@ -82,7 +82,7 @@ export interface PayoutStreamInput {
   key: string;
   label: string;
   pot: number;
-  /** Udbetalingsår for netop denne ordning — ratepension har sin egen (10-25), livrente er typisk 80-startAge. */
+  /** Udbetalingsår for netop denne ordning — ratepension har sin egen (10-25), livrente bruger forventet restlevetid. */
   years: number;
   taxFree: boolean;
 }

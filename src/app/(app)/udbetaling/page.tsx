@@ -3,6 +3,7 @@ import { getHouseholdBundle, getPensionSchemes, getInvestmentAccounts, getIncome
 import { ageFromBirthDate, projectScheme, schemeReturnPct, estimateFolkepension } from "@/lib/finance/pension";
 import { simulateMultiPayout, type PayoutStreamInput } from "@/lib/finance/payout";
 import { simulateFreeFunds } from "@/lib/finance/freeFunds";
+import { remainingLifeExpectancy } from "@/lib/finance/lifeExpectancy";
 import { fmtKr, fmtPct } from "@/lib/finance/format";
 import { personColor, personColorSoft, toMonthly } from "@/lib/constants";
 import { Stat } from "@/components/ui/Stat";
@@ -14,10 +15,11 @@ import { ReverseRetirementCalculator } from "./ReverseRetirementCalculator";
 const DEFAULT_PAYOUT: PayoutConfig = { years: 15, ret: 3, otherIncome: 0 };
 
 /** Udbetalingslængde pr. ordningstype: ratepension har sin egen (10-25 år), livrente er livsvarig
- *  (forenklet som 80 år minus udbetalingsstart), resten falder tilbage til personens generelle valg. */
+ *  og bruger forventet restlevetid ved udbetalingsstart (se lifeExpectancy.ts), resten falder
+ *  tilbage til personens generelle valg. */
 function streamYears(schemeType: string, payoutYears: number | null, retirementAge: number, fallbackYears: number): number {
   if (schemeType === "ratepension") return Math.min(25, Math.max(10, payoutYears ?? 15));
-  if (schemeType === "livrente") return Math.max(1, 80 - retirementAge);
+  if (schemeType === "livrente") return remainingLifeExpectancy(retirementAge);
   return fallbackYears;
 }
 
@@ -100,7 +102,11 @@ export default async function UdbetalingPage() {
               <PayoutPersonForm personId={p.id} cfg={cfg} />
               <p className="note mt-2">
                 Ratepension bruger sin egen udbetalingslængde (sæt under fanen Pension). Livrente er livsvarig og beregnes som opsparing ÷
-                (80 år − udbetalingsstart), justeret for afkast{livrenteStream ? ` — i alt ${livrenteStream.years} år` : ""}.
+                forventet restlevetid ved udbetalingsstart (unisex, fremadrettede levetidsforudsætninger, samme princip som
+                pensionsselskaberne bruger), justeret for afkast
+                {livrenteStream ? ` — ca. ${livrenteStream.years.toFixed(1)} år, svarende til en forventet levealder på ${(p.retirement_age + livrenteStream.years).toFixed(1)} år` : ""}.
+                I virkeligheden stopper en livrente ikke selvom man lever længere end det — det udjævnes på tværs af alle forsikrede — men
+                her bruges restlevetiden som en realistisk tilnærmelse til den forventede udbetaling.
                 {isPrimary && frieMidlerPot > 0 ? " Frie midler er fælles for husstanden og er lagt ind her, udbetalt over samme antal år." : ""}{" "}
                 Feltet &quot;Udbetalingsår&quot; herover gælder aldersopsparing, frie midler, arbejdsmarkedspension og andre ordninger.
               </p>
