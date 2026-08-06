@@ -361,6 +361,7 @@ export type Database = {
         Row: {
           broker: string | null
           created_at: string
+          current_value: number
           expected_return_pct: number
           household_id: string
           id: string
@@ -373,6 +374,7 @@ export type Database = {
         Insert: {
           broker?: string | null
           created_at?: string
+          current_value?: number
           expected_return_pct?: number
           household_id: string
           id?: string
@@ -385,6 +387,7 @@ export type Database = {
         Update: {
           broker?: string | null
           created_at?: string
+          current_value?: number
           expected_return_pct?: number
           household_id?: string
           id?: string

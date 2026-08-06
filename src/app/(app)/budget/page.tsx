@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { getHouseholdBundle, getBudgetItems, getIncomeStreams, getAssets, getLiabilities, getPensionSchemes, getInvestmentAccounts, getHoldings } from "@/lib/data";
+import { getHouseholdBundle, getBudgetItems, getIncomeStreams, getAssets, getLiabilities, getPensionSchemes, getInvestmentAccounts } from "@/lib/data";
 import { ageFromBirthDate, projectHousehold, schemeReturnPct, type SchemeCalcInput } from "@/lib/finance/pension";
 import { simulateFreeFunds, combineFreeFunds } from "@/lib/finance/freeFunds";
-import { portfolioReturn } from "@/lib/finance/holdings";
 import { projectNetWorth, type AssetGrowthInput } from "@/lib/finance/netWorth";
 import { fmtKr } from "@/lib/finance/format";
 import { toMonthly, LIABILITY_KIND_OPTIONS, INCOME_KIND_OPTIONS, labelFor } from "@/lib/constants";
@@ -17,14 +16,13 @@ export default async function BudgetPage() {
   const bundle = await getHouseholdBundle();
   if (!bundle) redirect("/login");
   const { persons, assumptions } = bundle;
-  const [budgetItems, incomeStreams, assets, liabilities, schemes, accounts, holdings] = await Promise.all([
+  const [budgetItems, incomeStreams, assets, liabilities, schemes, accounts] = await Promise.all([
     getBudgetItems(),
     getIncomeStreams(),
     getAssets(),
     getLiabilities(),
     getPensionSchemes(),
     getInvestmentAccounts(),
-    getHoldings(),
   ]);
 
   const personName = (id: string | null) => persons.find((p) => p.id === id)?.name ?? "Fælles";
@@ -40,16 +38,10 @@ export default async function BudgetPage() {
 
   // ── Net worth today ──────────────────────────────────────────────────
   const pensionNow = schemes.reduce((s, sc) => s + Number(sc.current_value), 0);
-  const holdingsByAccount = new Map<string, typeof holdings>();
-  holdings.forEach((h) => {
-    const list = holdingsByAccount.get(h.account_id) ?? [];
-    list.push(h);
-    holdingsByAccount.set(h.account_id, list);
-  });
   const accountSims = accounts.map((acc) =>
     simulateFreeFunds(
       {
-        lump: portfolioReturn(holdingsByAccount.get(acc.id) ?? []).marketValue,
+        lump: Number(acc.current_value),
         monthly: Number(acc.monthly_contribution),
         ret: Number(acc.expected_return_pct),
         years: Number(acc.projection_years),
@@ -59,7 +51,7 @@ export default async function BudgetPage() {
       assumptions.inflation_rate
     )
   );
-  const frieMidlerNow = accountSims.reduce((s, r) => s + r.series[0].nominal, 0);
+  const frieMidlerNow = accounts.reduce((s, a) => s + Number(a.current_value), 0);
   const sim = combineFreeFunds(accountSims);
   const liabilitiesTotal = liabilities.reduce((s, l) => s + Number(l.remaining_debt), 0);
 

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { updateAccountAction, removeAccountAction, type FormState } from "@/lib/actions/investments";
 import { SelectField, TextField } from "@/components/ui/Field";
+import { MoneyField } from "@/components/ui/MoneyField";
 import { ACCOUNT_KIND_OPTIONS, labelFor } from "@/lib/constants";
 import type { InvestmentAccount, Person } from "@/lib/types";
 
@@ -33,18 +34,16 @@ export function AccountRow({ account, persons, owner }: { account: InvestmentAcc
           <form action={formAction} className="grid gap-3 cols-2">
             <input type="hidden" name="id" value={account.id} />
             <TextField label="Navn" name="name" defaultValue={account.name} required />
-            <SelectField label="Kontotype" name="kind" defaultValue={account.kind} options={ACCOUNT_KIND_OPTIONS} />
-            <TextField label="Bank/mægler" name="broker" defaultValue={account.broker} />
+            <SelectField label="Beskatningsform" name="kind" defaultValue={account.kind} options={ACCOUNT_KIND_OPTIONS} />
+            <TextField label="Bank/mægler (valgfrit)" name="broker" defaultValue={account.broker} />
             <SelectField
               label="Ejer"
               name="person_id"
               defaultValue={account.person_id ?? ""}
               options={[{ value: "", label: "Fælles" }, ...persons.map((p) => ({ value: p.id, label: p.name }))]}
             />
-            <div className="field">
-              <label htmlFor={`acc-monthly-${account.id}`}>Månedlig indbetaling</label>
-              <input className="input" id={`acc-monthly-${account.id}`} name="monthly_contribution" type="number" defaultValue={account.monthly_contribution} />
-            </div>
+            <MoneyField label="Startværdi" name="current_value" defaultValue={account.current_value} />
+            <MoneyField label="Månedlig indbetaling" name="monthly_contribution" defaultValue={account.monthly_contribution} />
             <div className="field">
               <label htmlFor={`acc-ret-${account.id}`}>Forventet årligt afkast</label>
               <div className="relative">
@@ -72,7 +71,7 @@ export function AccountRow({ account, persons, owner }: { account: InvestmentAcc
                 formAction={removeAccountAction}
                 type="submit"
                 onClick={(e) => {
-                  if (!confirm(`Slet “${account.name}” og alle poster i den?`)) e.preventDefault();
+                  if (!confirm(`Slet “${account.name}”?`)) e.preventDefault();
                 }}
               >
                 Slet konto

@@ -6,7 +6,6 @@ import type {
   PlanningSettings,
   PensionScheme,
   InvestmentAccount,
-  Holding,
   Asset,
   Liability,
   IncomeStream,
@@ -57,12 +56,6 @@ export async function getPensionSchemes(): Promise<PensionScheme[]> {
 export async function getInvestmentAccounts(): Promise<InvestmentAccount[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("investment_accounts").select("*").order("created_at");
-  return data ?? [];
-}
-
-export async function getHoldings(): Promise<Holding[]> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("holdings").select("*").order("created_at");
   return data ?? [];
 }
 

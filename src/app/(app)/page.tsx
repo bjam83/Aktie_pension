@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   getHouseholdBundle,
   getPensionSchemes,
-  getHoldings,
   getInvestmentAccounts,
   getBudgetItems,
   getIncomeStreams,
@@ -11,10 +10,9 @@ import {
   getLiabilities,
 } from "@/lib/data";
 import { ageFromBirthDate, projectHousehold, schemeReturnPct, type SchemeCalcInput } from "@/lib/finance/pension";
-import { portfolioReturn } from "@/lib/finance/holdings";
 import { simulateFreeFunds, combineFreeFunds } from "@/lib/finance/freeFunds";
 import { projectNetWorth, type AssetGrowthInput } from "@/lib/finance/netWorth";
-import { fmtKr, fmtPct } from "@/lib/finance/format";
+import { fmtKr } from "@/lib/finance/format";
 import { toMonthly, personColor } from "@/lib/constants";
 import { Stat } from "@/components/ui/Stat";
 import { LineAreaChart } from "@/components/charts/LineAreaChart";
@@ -25,9 +23,8 @@ export default async function DashboardPage() {
   if (!bundle) redirect("/login");
   const { persons, assumptions } = bundle;
 
-  const [schemes, holdings, accounts, budgetItems, incomeStreams, assets, liabilities] = await Promise.all([
+  const [schemes, accounts, budgetItems, incomeStreams, assets, liabilities] = await Promise.all([
     getPensionSchemes(),
-    getHoldings(),
     getInvestmentAccounts(),
     getBudgetItems(),
     getIncomeStreams(),
@@ -50,16 +47,10 @@ export default async function DashboardPage() {
   });
   const proj = calcInputs.length ? projectHousehold(calcInputs, assumptions.pal_rate, assumptions.inflation_rate) : null;
 
-  const holdingsByAccount = new Map<string, typeof holdings>();
-  holdings.forEach((h) => {
-    const list = holdingsByAccount.get(h.account_id) ?? [];
-    list.push(h);
-    holdingsByAccount.set(h.account_id, list);
-  });
   const accountSims = accounts.map((acc) =>
     simulateFreeFunds(
       {
-        lump: portfolioReturn(holdingsByAccount.get(acc.id) ?? []).marketValue,
+        lump: Number(acc.current_value),
         monthly: Number(acc.monthly_contribution),
         ret: Number(acc.expected_return_pct),
         years: Number(acc.projection_years),
@@ -70,13 +61,13 @@ export default async function DashboardPage() {
     )
   );
   const frieMidlerSim = combineFreeFunds(accountSims);
+  const frieMidlerNow = accounts.reduce((s, a) => s + Number(a.current_value), 0);
 
-  const invReturn = portfolioReturn(holdings);
   const pensionNow = schemes.reduce((s, sc) => s + Number(sc.current_value), 0);
   const assetsTotal = assets.reduce((s, a) => s + Number(a.value), 0);
   const liabilitiesTotal = liabilities.reduce((s, l) => s + Number(l.remaining_debt), 0);
   const equity = assetsTotal - liabilitiesTotal;
-  const netWorthNow = pensionNow + invReturn.marketValue + equity;
+  const netWorthNow = pensionNow + frieMidlerNow + equity;
 
   const monthlyIncome =
     incomeStreams.reduce((s, i) => s + toMonthly(Number(i.amount), i.frequency), 0) +
@@ -101,12 +92,7 @@ export default async function DashboardPage() {
       <div className="grid stats-grid" style={{ gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
         <Stat label="Nettoformue i dag" value={fmtKr(netWorthNow)} color="var(--grow)" />
         <Stat label="Pension i alt" value={fmtKr(pensionNow)} hint={proj ? `${fmtKr(proj.totals.finalNominal)} ved pension` : undefined} />
-        <Stat
-          label="Frie midler"
-          value={fmtKr(invReturn.marketValue)}
-          hint={invReturn.gainPct == null ? undefined : `${invReturn.gain >= 0 ? "+" : ""}${fmtPct(invReturn.gainPct)} afkast`}
-          color={invReturn.gain >= 0 ? "var(--grow)" : "var(--real)"}
-        />
+        <Stat label="Frie midler" value={fmtKr(frieMidlerNow)} color="var(--grow)" />
         <Stat label="Månedligt rådighedsbeløb" value={fmtKr(surplus)} color={surplus >= 0 ? "var(--grow)" : "var(--real)"} />
       </div>
 

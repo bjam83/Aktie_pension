@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { addAccountAction, type FormState } from "@/lib/actions/investments";
 import { SelectField, TextField } from "@/components/ui/Field";
+import { MoneyField } from "@/components/ui/MoneyField";
 import { ACCOUNT_KIND_OPTIONS } from "@/lib/constants";
 import type { Person } from "@/lib/types";
 
@@ -17,13 +18,11 @@ export function AddAccountForm({ persons }: { persons: Person[] }) {
       <p className="cap">Opret så mange konti I har brug for — fx én aktiesparekonto (flad ASK-skat) og én klassisk beskattet depot (aktieindkomstskat).</p>
       <form action={formAction} className="grid gap-3 cols-2">
         <TextField label="Navn" name="name" placeholder="Fx “Aktiesparekonto – Nordnet”" required />
-        <SelectField label="Kontotype" name="kind" defaultValue="frie_midler" options={ACCOUNT_KIND_OPTIONS} />
-        <TextField label="Bank/mægler" name="broker" placeholder="Fx Nordnet" />
+        <SelectField label="Beskatningsform" name="kind" defaultValue="frie_midler" options={ACCOUNT_KIND_OPTIONS} />
+        <TextField label="Bank/mægler (valgfrit)" name="broker" placeholder="Fx Nordnet" />
         <SelectField label="Ejer" name="person_id" options={[{ value: "", label: "Fælles" }, ...persons.map((p) => ({ value: p.id, label: p.name }))]} />
-        <div className="field">
-          <label htmlFor="new-acc-monthly">Månedlig indbetaling</label>
-          <input className="input" id="new-acc-monthly" name="monthly_contribution" type="number" defaultValue={0} />
-        </div>
+        <MoneyField label="Startværdi" name="current_value" defaultValue={0} />
+        <MoneyField label="Månedlig indbetaling" name="monthly_contribution" defaultValue={0} />
         <div className="field">
           <label htmlFor="new-acc-ret">Forventet årligt afkast</label>
           <div className="relative">

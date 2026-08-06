@@ -102,6 +102,8 @@ export interface MultiPayoutResult {
   netMonthly: number;
   effRate: number;
   series: PayoutYear[];
+  /** Årlig (ikke-akkumuleret) nettoudbetaling pr. ordning — til at vise hvor pengene kommer fra. */
+  breakdown: ({ age: number } & Record<string, number>)[];
   totalNet: number;
 }
 
@@ -133,24 +135,31 @@ export function simulateMultiPayout(streamsIn: PayoutStreamInput[], retPct: numb
   let cumNet = 0;
   let cumTax = 0;
   const series: PayoutYear[] = [{ age: startAge, remaining: Math.round(balances.reduce((sum, b) => sum + b, 0)), cumNet: 0, cumTax: 0 }];
+  const zeroRow: Record<string, number> = {};
+  streams.forEach((s) => (zeroRow[s.key] = 0));
+  const breakdown: ({ age: number } & Record<string, number>)[] = [{ age: startAge, ...zeroRow }];
 
   for (let y = 1; y <= maxYears; y++) {
     let yearNet = 0;
     let yearTax = 0;
+    const row: Record<string, number> = {};
     balances = balances.map((bal, i) => {
       const s = streams[i];
       const n = Math.max(1, Math.round(s.years));
-      if (y > n) return 0;
-      if (s.taxFree) yearNet += s.grossAnnual;
-      else {
-        yearNet += s.grossAnnual * (1 - effRate);
-        yearTax += s.grossAnnual * effRate;
+      if (y > n) {
+        row[s.key] = 0;
+        return 0;
       }
+      const net = s.taxFree ? s.grossAnnual : s.grossAnnual * (1 - effRate);
+      row[s.key] = Math.round(net);
+      yearNet += net;
+      if (!s.taxFree) yearTax += s.grossAnnual * effRate;
       return Math.max(0, bal * (1 + r) - s.grossAnnual);
     });
     cumNet += yearNet;
     cumTax += yearTax;
     series.push({ age: startAge + y, remaining: Math.round(balances.reduce((sum, b) => sum + b, 0)), cumNet: Math.round(cumNet), cumTax: Math.round(cumTax) });
+    breakdown.push({ age: startAge + y, ...row });
   }
 
   return {
@@ -164,6 +173,7 @@ export function simulateMultiPayout(streamsIn: PayoutStreamInput[], retPct: numb
     netMonthly: netAnnual / 12,
     effRate,
     series,
+    breakdown,
     totalNet: cumNet,
   };
 }

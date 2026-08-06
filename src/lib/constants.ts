@@ -13,9 +13,9 @@ export const RETURN_BASIS_OPTIONS = [
 ];
 
 export const ACCOUNT_KIND_OPTIONS = [
-  { value: "frie_midler", label: "Frie midler" },
-  { value: "aktiesparekonto", label: "Aktiesparekonto" },
-  { value: "pensionsdepot", label: "Pensionsdepot" },
+  { value: "frie_midler", label: "Depot (aktieindkomstskat, klassisk)" },
+  { value: "aktiesparekonto", label: "Aktiesparekonto (flad ASK-skat)" },
+  { value: "pensionsdepot", label: "Pensionsdepot (aktieindkomstskat)" },
 ];
 
 export const INSTRUMENT_TYPE_OPTIONS = [

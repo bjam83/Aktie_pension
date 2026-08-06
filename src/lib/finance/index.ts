@@ -3,5 +3,4 @@ export * from "./tax";
 export * from "./pension";
 export * from "./payout";
 export * from "./freeFunds";
-export * from "./holdings";
 export * from "./netWorth";

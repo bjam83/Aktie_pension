@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
-import { getHouseholdBundle, getPensionSchemes } from "@/lib/data";
+import { getHouseholdBundle, getPensionSchemes, getInvestmentAccounts, getIncomeStreams } from "@/lib/data";
 import { ageFromBirthDate, projectScheme, schemeReturnPct, estimateFolkepension } from "@/lib/finance/pension";
 import { simulateMultiPayout, type PayoutStreamInput } from "@/lib/finance/payout";
-import { fmtKr } from "@/lib/finance/format";
-import { personColor } from "@/lib/constants";
+import { simulateFreeFunds } from "@/lib/finance/freeFunds";
+import { fmtKr, fmtPct } from "@/lib/finance/format";
+import { personColor, personColorSoft, toMonthly } from "@/lib/constants";
 import { Stat } from "@/components/ui/Stat";
 import { LineAreaChart } from "@/components/charts/LineAreaChart";
 import type { PayoutConfig } from "@/lib/types";
@@ -24,8 +25,11 @@ export default async function UdbetalingPage() {
   const bundle = await getHouseholdBundle();
   if (!bundle) redirect("/login");
   const { persons, assumptions, planningSettings } = bundle;
-  const schemes = await getPensionSchemes();
+  const [schemes, accounts, incomeStreams] = await Promise.all([getPensionSchemes(), getInvestmentAccounts(), getIncomeStreams()]);
   const payoutByPerson = (planningSettings.payout as unknown as Record<string, PayoutConfig>) || {};
+
+  // Frie midler er fælles for husstanden og lægges ind under den primære persons udbetaling.
+  const primary = persons.find((p) => p.is_primary) ?? persons[0];
 
   return (
     <div className="grid gap-[18px]">
@@ -33,6 +37,7 @@ export default async function UdbetalingPage() {
         const personSchemes = schemes.filter((s) => s.person_id === p.id);
         const ageNow = ageFromBirthDate(p.birth_date, 40);
         const cfg = payoutByPerson[p.id] ?? DEFAULT_PAYOUT;
+        const isPrimary = p.id === primary?.id;
 
         const streams: PayoutStreamInput[] = personSchemes.map((s) => {
           const proj = projectScheme(
@@ -49,9 +54,40 @@ export default async function UdbetalingPage() {
           };
         });
 
-        const payout = simulateMultiPayout(streams, cfg.ret, cfg.otherIncome, assumptions.pal_rate, p.retirement_age, assumptions);
+        let frieMidlerPot = 0;
+        if (isPrimary && accounts.length > 0) {
+          const yearsToRetirement = Math.max(0, p.retirement_age - ageNow);
+          frieMidlerPot = accounts.reduce((sum, acc) => {
+            const sim = simulateFreeFunds(
+              {
+                lump: Number(acc.current_value),
+                monthly: Number(acc.monthly_contribution),
+                ret: Number(acc.expected_return_pct),
+                years: yearsToRetirement,
+                tax: acc.kind === "aktiesparekonto" ? "ask" : "depot",
+              },
+              assumptions,
+              assumptions.inflation_rate
+            );
+            return sum + sim.finalNominal;
+          }, 0);
+          if (frieMidlerPot > 0) {
+            streams.push({ key: "frie-midler", label: "Frie midler", pot: frieMidlerPot, years: cfg.years, taxFree: true });
+          }
+        }
+
+        const payout = streams.length ? simulateMultiPayout(streams, cfg.ret, cfg.otherIncome, assumptions.pal_rate, p.retirement_age, assumptions) : null;
         const fp = estimateFolkepension(p.retirement_age);
         const livrenteStream = streams.find((s) => personSchemes.find((sc) => sc.id === s.key)?.scheme_type === "livrente");
+
+        const nettoLoenMonthly = incomeStreams
+          .filter((inc) => inc.person_id === p.id && inc.kind === "løn")
+          .reduce((s, inc) => s + toMonthly(Number(inc.amount), inc.frequency), 0);
+        const payoutVsLoen = nettoLoenMonthly > 0 && payout ? (payout.netMonthly / nettoLoenMonthly) * 100 : null;
+
+        const breakdownSeries = payout
+          ? payout.streams.map((s, idx) => ({ key: s.key, name: s.label, stroke: personColor(idx), fill: personColorSoft(idx), fillOp: 0.85 }))
+          : [];
 
         return (
           <div key={p.id} className="grid gap-3">
@@ -64,13 +100,14 @@ export default async function UdbetalingPage() {
               <PayoutPersonForm personId={p.id} cfg={cfg} />
               <p className="note mt-2">
                 Ratepension bruger sin egen udbetalingslængde (sæt under fanen Pension). Livrente er livsvarig og beregnes som opsparing ÷
-                (80 år − udbetalingsstart), justeret for afkast{livrenteStream ? ` — i alt ${livrenteStream.years} år` : ""}. Feltet
-                &quot;Udbetalingsår&quot; herover gælder aldersopsparing, arbejdsmarkedspension og andre ordninger.
+                (80 år − udbetalingsstart), justeret for afkast{livrenteStream ? ` — i alt ${livrenteStream.years} år` : ""}.
+                {isPrimary && frieMidlerPot > 0 ? " Frie midler er fælles for husstanden og er lagt ind her, udbetalt over samme antal år." : ""}{" "}
+                Feltet &quot;Udbetalingsår&quot; herover gælder aldersopsparing, frie midler, arbejdsmarkedspension og andre ordninger.
               </p>
             </div>
 
-            {personSchemes.length === 0 ? (
-              <div className="empty">Ingen pensionsordninger for {p.name} endnu.</div>
+            {!payout ? (
+              <div className="empty">Ingen pensionsordninger eller frie midler for {p.name} endnu.</div>
             ) : (
               <>
                 <div className="grid stats-grid" style={{ gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
@@ -78,6 +115,29 @@ export default async function UdbetalingPage() {
                   <Stat label="Månedlig udbetaling (netto)" value={fmtKr(payout.netMonthly)} color="var(--real)" />
                   <Stat label="Skat af udbetaling" value={fmtKr(payout.taxOnPayout)} hint={`${(payout.effRate * 100).toFixed(1)}% effektiv`} />
                   <Stat label="Folkepension (netto est.)" value={fmtKr(fp.net)} hint={fp.note} color="var(--muted)" />
+                </div>
+
+                <div className="card">
+                  <h3>Sammenlignet med nuværende nettoløn</h3>
+                  {nettoLoenMonthly > 0 ? (
+                    <div className="grid cols-3 gap-3">
+                      <Stat label="Nuværende nettoløn" value={fmtKr(nettoLoenMonthly)} hint="pr. måned, fra Budget" />
+                      <Stat label="Forventet udbetaling" value={fmtKr(payout.netMonthly)} hint="netto pr. måned, ved pension" color="var(--real)" />
+                      <Stat
+                        label="Andel af nuværende løn"
+                        value={payoutVsLoen == null ? "–" : fmtPct(payoutVsLoen, 0)}
+                        color={payoutVsLoen != null && payoutVsLoen >= 80 ? "var(--grow)" : "var(--amber)"}
+                      />
+                    </div>
+                  ) : (
+                    <div className="empty">Registrér {p.name}s nettoløn under Budget → Indkomstkilder for at se sammenligningen.</div>
+                  )}
+                </div>
+
+                <div className="card">
+                  <h3>Årlig udbetaling pr. kilde</h3>
+                  <p className="cap">Nettobeløb pr. år — viser hvor udbetalingen kommer fra, og hvordan den ændrer sig når kortere ordninger stopper.</p>
+                  <LineAreaChart data={payout.breakdown as unknown as Record<string, number>[]} series={breakdownSeries} xKey="age" height={280} />
                 </div>
 
                 <div className="card">
