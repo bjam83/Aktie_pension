@@ -34,7 +34,7 @@ export async function updateFreeFundsAction(_prev: FormState, formData: FormData
     .eq("household_id", user.id);
   if (error) return { error: error.message };
 
-  revalidatePath("/frie-midler");
+  revalidatePath("/investeringssimulator");
   return {};
 }
 

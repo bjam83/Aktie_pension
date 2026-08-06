@@ -61,6 +61,15 @@ export function AddAssetForm({ persons }: { persons: Person[] }) {
         <TextField label="Navn" name="name" placeholder="Fx “Lejlighed”" required />
         <SelectField label="Type" name="kind" defaultValue="andet" options={ASSET_KIND_OPTIONS} />
         <MoneyField label="Værdi" name="value" defaultValue={0} />
+        <div className="field">
+          <label htmlFor="new-asset-growth">Årlig værdiudvikling</label>
+          <div className="relative">
+            <input className="input pr-9" id="new-asset-growth" name="growth_rate_pct" type="number" step={0.1} defaultValue={0} />
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none" style={{ color: "var(--faint)" }}>
+              %
+            </span>
+          </div>
+        </div>
         <SelectField label="Ejer" name="owner_id" options={[{ value: "", label: "Fælles" }, ...persons.map((p) => ({ value: p.id, label: p.name }))]} />
         <div className="flex items-end">
           <button className="btn" type="submit" disabled={pending}>
@@ -68,6 +77,7 @@ export function AddAssetForm({ persons }: { persons: Person[] }) {
           </button>
         </div>
       </form>
+      <p className="note mt-2">Fx 2-3% for boligpriser, 0% for bankindestående, eller negativt for en bil der falder i værdi (fx -15%).</p>
       {state.error && (
         <p className="text-[12px] mt-2" style={{ color: "var(--danger)" }}>
           {state.error}
@@ -123,7 +133,7 @@ export function AddIncomeStreamForm({ persons }: { persons: Person[] }) {
       <form action={formAction} className="grid gap-3 cols-2 mt-3">
         <SelectField label="Person" name="person_id" options={persons.map((p) => ({ value: p.id, label: p.name }))} />
         <SelectField label="Type" name="kind" defaultValue="løn" options={INCOME_KIND_OPTIONS} />
-        <MoneyField label="Beløb" name="amount" defaultValue={0} />
+        <MoneyField label="Beløb (netto, efter skat)" name="amount" defaultValue={0} />
         <SelectField label="Hyppighed" name="frequency" defaultValue="månedlig" options={INCOME_FREQUENCY_OPTIONS} />
         <div className="flex items-end">
           <button className="btn" type="submit" disabled={pending}>
@@ -131,6 +141,7 @@ export function AddIncomeStreamForm({ persons }: { persons: Person[] }) {
           </button>
         </div>
       </form>
+      <p className="note mt-2">Indtast beløb som nettoløn/netto — dvs. det beløb der reelt indsættes på kontoen efter skat. Budgettets over-/underskud regner videre i netto-kroner.</p>
       {state.error && (
         <p className="text-[12px] mt-2" style={{ color: "var(--danger)" }}>
           {state.error}

@@ -85,8 +85,32 @@ export async function addAssetAction(_prev: FormState, formData: FormData): Prom
     name,
     kind: String(formData.get("kind") || "andet"),
     value: num(formData, "value"),
+    growth_rate_pct: num(formData, "growth_rate_pct"),
     owner_ids: ownerId ? [ownerId] : [],
   });
+  if (error) return { error: error.message };
+
+  revalidatePath("/budget");
+  return {};
+}
+
+export async function updateAssetAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const supabase = await createClient();
+  const id = String(formData.get("id") || "");
+  const name = String(formData.get("name") || "").trim();
+  if (!name) return { error: "Navn må ikke være tomt." };
+  const ownerId = String(formData.get("owner_id") || "");
+
+  const { error } = await supabase
+    .from("assets")
+    .update({
+      name,
+      kind: String(formData.get("kind") || "andet"),
+      value: num(formData, "value"),
+      growth_rate_pct: num(formData, "growth_rate_pct"),
+      owner_ids: ownerId ? [ownerId] : [],
+    })
+    .eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/budget");

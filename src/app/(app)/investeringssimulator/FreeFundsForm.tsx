@@ -13,8 +13,8 @@ export function FreeFundsForm({ cfg }: { cfg: FreeFundsConfig }) {
 
   return (
     <div className="card">
-      <h3>Simulér frie midler</h3>
-      <p className="cap">Månedsopsparing uden for pension — vælg beskatningsform for at se afkastet efter skat.</p>
+      <h3>Investeringssimulator</h3>
+      <p className="cap">Simulér opsparing/investering uden for pension — frie midler — og se afkastet efter skat.</p>
       <form action={formAction} className="grid gap-3 cols-3">
         <MoneyField label="Startbeløb" name="lump" defaultValue={cfg.lump} />
         <MoneyField label="Månedlig indbetaling" name="monthly" defaultValue={cfg.monthly} />

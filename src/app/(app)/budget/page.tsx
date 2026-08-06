@@ -2,11 +2,14 @@ import { redirect } from "next/navigation";
 import { getHouseholdBundle, getBudgetItems, getIncomeStreams, getAssets, getLiabilities, getPensionSchemes } from "@/lib/data";
 import { ageFromBirthDate, projectHousehold, schemeReturnPct, type SchemeCalcInput } from "@/lib/finance/pension";
 import { simulateFreeFunds } from "@/lib/finance/freeFunds";
+import { projectNetWorth, type AssetGrowthInput } from "@/lib/finance/netWorth";
 import { fmtKr } from "@/lib/finance/format";
-import { toMonthly, ASSET_KIND_OPTIONS, LIABILITY_KIND_OPTIONS, INCOME_KIND_OPTIONS, labelFor } from "@/lib/constants";
-import { removeAssetAction, removeLiabilityAction, removeIncomeStreamAction } from "@/lib/actions/budget";
-import type { FreeFundsConfig } from "@/lib/types";
+import { toMonthly, LIABILITY_KIND_OPTIONS, INCOME_KIND_OPTIONS, labelFor } from "@/lib/constants";
+import { removeLiabilityAction, removeIncomeStreamAction } from "@/lib/actions/budget";
+import { LineAreaChart } from "@/components/charts/LineAreaChart";
+import type { AssetKind, FreeFundsConfig } from "@/lib/types";
 import { BudgetItemRow } from "./BudgetItemRow";
+import { AssetRow } from "./AssetRow";
 import { AddBudgetItemForm, AddAssetForm, AddLiabilityForm, AddIncomeStreamForm } from "./AddForms";
 
 export default async function BudgetPage() {
@@ -32,13 +35,20 @@ export default async function BudgetPage() {
 
   const groups = [...new Set(budgetItems.map((b) => b.group_name))];
 
-  // ── Net worth ────────────────────────────────────────────────────────
+  // ── Net worth today ──────────────────────────────────────────────────
   const pensionNow = schemes.reduce((s, sc) => s + Number(sc.current_value), 0);
   const ffCfg = planningSettings.free_funds as unknown as FreeFundsConfig;
   const sim = simulateFreeFunds(ffCfg, assumptions, assumptions.inflation_rate);
-  const assetsTotal = assets.reduce((s, a) => s + Number(a.value), 0);
   const liabilitiesTotal = liabilities.reduce((s, l) => s + Number(l.remaining_debt), 0);
-  const equity = assetsTotal - liabilitiesTotal;
+
+  const assetsByKind = (kind: AssetKind | "andet-samlet") =>
+    assets
+      .filter((a) => (kind === "andet-samlet" ? a.kind !== "bolig" && a.kind !== "bil" : a.kind === kind))
+      .reduce((s, a) => s + Number(a.value), 0);
+  const ejendommeNow = assetsByKind("bolig");
+  const bilerNow = assetsByKind("bil");
+  const andreNow = assetsByKind("andet-samlet");
+  const equityNow = ejendommeNow + bilerNow + andreNow - liabilitiesTotal;
 
   const calcInputs: SchemeCalcInput[] = schemes.map((s) => {
     const person = persons.find((p) => p.id === s.person_id);
@@ -55,8 +65,26 @@ export default async function BudgetPage() {
   });
   const proj = calcInputs.length ? projectHousehold(calcInputs, assumptions.pal_rate, assumptions.inflation_rate) : null;
 
-  const netWorthNow = pensionNow + Number(ffCfg.lump || 0) + equity;
-  const netWorthRetire = (proj?.totals.finalNominal || 0) + sim.finalNominal + equity;
+  const netWorthNow = pensionNow + Number(ffCfg.lump || 0) + equityNow;
+
+  // ── Net worth over time ──────────────────────────────────────────────
+  const horizonYears = Math.max(proj?.horizonYears || 0, sim.years || 0);
+  const assetGrowthInputs: AssetGrowthInput[] = assets.map((a) => ({
+    kind: a.kind as AssetKind,
+    value: Number(a.value),
+    growthRatePct: Number(a.growth_rate_pct),
+  }));
+  const netWorthSeries =
+    horizonYears >= 1
+      ? projectNetWorth(
+          proj?.series.map((y) => ({ year: y.year, total: y.total })) ?? [],
+          sim.series.map((y) => ({ year: y.year, nominal: y.nominal })),
+          assetGrowthInputs,
+          liabilitiesTotal,
+          horizonYears
+        )
+      : [];
+  const netWorthAtHorizon = netWorthSeries[netWorthSeries.length - 1];
 
   return (
     <div className="grid gap-[18px]">
@@ -146,24 +174,11 @@ export default async function BudgetPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <h3 style={{ margin: 0 }}>Aktiver</h3>
-            <span className="num text-[13px] font-semibold">{fmtKr(assetsTotal)}</span>
+            <span className="num text-[13px] font-semibold">{fmtKr(ejendommeNow + bilerNow + andreNow)}</span>
           </div>
           {assets.length === 0 && <div className="empty">Ingen aktiver endnu.</div>}
           {assets.map((a) => (
-            <div key={a.id} className="flex items-center justify-between py-1.5" style={{ borderBottom: "1px solid var(--line)" }}>
-              <span className="text-[13px]">
-                {a.name} <span style={{ color: "var(--faint)" }}>· {labelFor(ASSET_KIND_OPTIONS, a.kind)}</span>
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="num text-[13px]">{fmtKr(a.value)}</span>
-                <form action={removeAssetAction}>
-                  <input type="hidden" name="id" value={a.id} />
-                  <button className="btn ghost tiny" type="submit">
-                    Slet
-                  </button>
-                </form>
-              </div>
-            </div>
+            <AssetRow key={a.id} asset={a} persons={persons} />
           ))}
           <AddAssetForm persons={persons} />
         </div>
@@ -198,7 +213,7 @@ export default async function BudgetPage() {
 
       <div className="card">
         <h3>Samlet nettoformue</h3>
-        <p className="cap">Pension, frie midler og friværdi — i dag og ved pension.</p>
+        <p className="cap">Pension, frie midler, ejendomme, biler og andre aktiver — i dag og ved pension.</p>
         <div className="grid cols-2 gap-4">
           <div>
             <div className="text-[11.5px] font-medium mb-2" style={{ color: "var(--muted)" }}>
@@ -213,8 +228,22 @@ export default async function BudgetPage() {
               <span className="num">{fmtKr(ffCfg.lump || 0)}</span>
             </div>
             <div className="flex justify-between text-[13px] mb-1">
-              <span>Friværdi</span>
-              <span className="num">{fmtKr(equity)}</span>
+              <span>Ejendomme</span>
+              <span className="num">{fmtKr(ejendommeNow)}</span>
+            </div>
+            <div className="flex justify-between text-[13px] mb-1">
+              <span>Biler</span>
+              <span className="num">{fmtKr(bilerNow)}</span>
+            </div>
+            <div className="flex justify-between text-[13px] mb-1">
+              <span>Andre aktiver</span>
+              <span className="num">{fmtKr(andreNow)}</span>
+            </div>
+            <div className="flex justify-between text-[13px] mb-1">
+              <span>Gæld</span>
+              <span className="num" style={{ color: "var(--real)" }}>
+                −{fmtKr(liabilitiesTotal)}
+              </span>
             </div>
             <div className="flex justify-between text-[14px] font-semibold pt-2 mt-1" style={{ borderTop: "1px solid var(--line)" }}>
               <span>I alt</span>
@@ -225,28 +254,66 @@ export default async function BudgetPage() {
           </div>
           <div>
             <div className="text-[11.5px] font-medium mb-2" style={{ color: "var(--muted)" }}>
-              VED PENSION
+              VED PENSION{horizonYears >= 1 ? ` (om ${horizonYears} år)` : ""}
             </div>
             <div className="flex justify-between text-[13px] mb-1">
               <span>Pension (fremskrevet)</span>
-              <span className="num">{fmtKr(proj?.totals.finalNominal || 0)}</span>
+              <span className="num">{fmtKr(netWorthAtHorizon?.pension ?? proj?.totals.finalNominal ?? 0)}</span>
             </div>
             <div className="flex justify-between text-[13px] mb-1">
               <span>Frie midler (fremskrevet)</span>
-              <span className="num">{fmtKr(sim.finalNominal)}</span>
+              <span className="num">{fmtKr(netWorthAtHorizon?.frieMidler ?? sim.finalNominal)}</span>
             </div>
             <div className="flex justify-between text-[13px] mb-1">
-              <span>Friværdi (uændret)</span>
-              <span className="num">{fmtKr(equity)}</span>
+              <span>Ejendomme (fremskrevet)</span>
+              <span className="num">{fmtKr(netWorthAtHorizon?.ejendomme ?? ejendommeNow)}</span>
+            </div>
+            <div className="flex justify-between text-[13px] mb-1">
+              <span>Biler (fremskrevet)</span>
+              <span className="num">{fmtKr(netWorthAtHorizon?.biler ?? bilerNow)}</span>
+            </div>
+            <div className="flex justify-between text-[13px] mb-1">
+              <span>Andre aktiver (fremskrevet)</span>
+              <span className="num">{fmtKr(netWorthAtHorizon?.andre ?? andreNow)}</span>
+            </div>
+            <div className="flex justify-between text-[13px] mb-1">
+              <span>Gæld (uændret)</span>
+              <span className="num" style={{ color: "var(--real)" }}>
+                −{fmtKr(liabilitiesTotal)}
+              </span>
             </div>
             <div className="flex justify-between text-[14px] font-semibold pt-2 mt-1" style={{ borderTop: "1px solid var(--line)" }}>
               <span>I alt</span>
               <span className="num" style={{ color: "var(--grow)" }}>
-                {fmtKr(netWorthRetire)}
+                {fmtKr(netWorthAtHorizon?.netWorth ?? netWorthNow)}
               </span>
             </div>
           </div>
         </div>
+
+        {netWorthSeries.length >= 2 ? (
+          <div className="mt-5">
+            <h3 style={{ fontSize: 14.5 }}>Nettoformue over tid</h3>
+            <p className="cap">Areal = sammensætning af formuen · stiplet linje = samlet nettoformue (efter gæld).</p>
+            <LineAreaChart
+              data={netWorthSeries as unknown as Record<string, number>[]}
+              series={[
+                { key: "pension", name: "Pension", stroke: "var(--grow)", fill: "var(--grow-soft)", fillOp: 0.85 },
+                { key: "frieMidler", name: "Frie midler", stroke: "var(--amber)", fill: "var(--amber-soft)", fillOp: 0.85 },
+                { key: "ejendomme", name: "Ejendomme", stroke: "var(--s2)", fill: "var(--s2-soft)", fillOp: 0.85 },
+                { key: "biler", name: "Biler", stroke: "var(--real)", fill: "#D79A7C", fillOp: 0.85 },
+                { key: "andre", name: "Andre aktiver", stroke: "var(--indbetalt)", fill: "var(--indbetalt)", fillOp: 0.6 },
+                { key: "netWorth", name: "Nettoformue (efter gæld)", stroke: "var(--ink)", width: 2.4, dashed: true },
+              ]}
+              xKey="year"
+              height={320}
+            />
+          </div>
+        ) : (
+          <div className="note mt-4">
+            Tilføj pensionsordninger, frie midler eller aktiver med værdiudvikling for at se nettoformuen som graf over tid.
+          </div>
+        )}
       </div>
     </div>
   );

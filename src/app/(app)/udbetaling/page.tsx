@@ -8,6 +8,7 @@ import { Stat } from "@/components/ui/Stat";
 import { LineAreaChart } from "@/components/charts/LineAreaChart";
 import type { PayoutConfig } from "@/lib/types";
 import { PayoutPersonForm } from "./PayoutPersonForm";
+import { ReverseRetirementCalculator } from "./ReverseRetirementCalculator";
 
 const DEFAULT_PAYOUT: PayoutConfig = { potOverride: null, years: 15, ret: 3, otherIncome: 0 };
 
@@ -77,6 +78,22 @@ export default async function UdbetalingPage() {
                     xKey="age"
                   />
                 </div>
+
+                <ReverseRetirementCalculator
+                  schemes={personSchemes.map((s) => ({
+                    currentValue: Number(s.current_value),
+                    monthlyContribution: Number(s.monthly_contribution),
+                    returnPct: schemeReturnPct(s),
+                    isTaxFree: s.scheme_type === "aldersopsparing",
+                  }))}
+                  ageNow={ageNow}
+                  palRatePct={assumptions.pal_rate}
+                  inflationRatePct={assumptions.inflation_rate}
+                  payoutYears={cfg.years}
+                  payoutRet={cfg.ret}
+                  otherIncome={cfg.otherIncome}
+                  assumptions={assumptions}
+                />
               </>
             )}
           </div>

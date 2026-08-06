@@ -14,6 +14,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/budget", label: "Budget", icon: "M3 6h18M3 12h18M3 18h10", primary: true },
   { href: "/husstand", label: "Husstand", icon: "M4 21V10l8-6 8 6v11h-5v-6H9v6z" },
   { href: "/udbetaling", label: "Udbetaling", icon: "M12 3v9m0 0l-3-3m3 3l3-3M5 17h14l-1.5 4h-11z" },
-  { href: "/frie-midler", label: "Frie midler", icon: "M12 21a9 9 0 100-18 9 9 0 000 18zm0-13v4l3 2" },
+  { href: "/investeringssimulator", label: "Investeringssimulator", icon: "M12 21a9 9 0 100-18 9 9 0 000 18zm0-13v4l3 2" },
   { href: "/indstillinger", label: "Indstillinger", icon: "M12 15a3 3 0 100-6 3 3 0 000 6zm0-9v1.5M12 18v1.5M4.2 6.9l1 1.1M16.8 15.1l1 1M3 12H4.5M19.5 12H21M4.2 17.1l1.1-1M16.8 8.9l1-1.1" },
 ];

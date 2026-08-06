@@ -17,6 +17,7 @@ export type Database = {
       assets: {
         Row: {
           created_at: string
+          growth_rate_pct: number
           household_id: string
           id: string
           kind: string
@@ -28,6 +29,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          growth_rate_pct?: number
           household_id: string
           id?: string
           kind: string
@@ -39,6 +41,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          growth_rate_pct?: number
           household_id?: string
           id?: string
           kind?: string

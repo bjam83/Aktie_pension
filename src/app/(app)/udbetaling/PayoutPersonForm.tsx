@@ -27,7 +27,7 @@ export function PayoutPersonForm({ personId, cfg }: { personId: string; cfg: Pay
           </span>
         </div>
       </div>
-      <MoneyField label="Anden indkomst i udbetalingsårene (årligt)" name="otherIncome" defaultValue={cfg.otherIncome} />
+      <MoneyField label="Anden indkomst i udbetalingsårene (årligt, brutto)" name="otherIncome" defaultValue={cfg.otherIncome} />
       <div className="flex items-end">
         <button className="btn" type="submit" disabled={pending}>
           {pending ? "Gemmer…" : "Gem & genberegn"}

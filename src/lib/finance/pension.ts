@@ -1,4 +1,5 @@
-import type { PensionScheme, ReturnBasis } from "@/lib/types";
+import type { Assumptions, PensionScheme, ReturnBasis } from "@/lib/types";
+import { simulatePayout } from "./payout";
 
 /** Alder ud fra fødselsdato (i dag). */
 export function ageFromBirthDate(birthDate: string | null, fallback = 40): number {
@@ -132,6 +133,56 @@ export function projectHousehold(schemes: SchemeCalcInput[], palRatePct: number,
   };
 
   return { perScheme, series, horizonYears, totals };
+}
+
+export interface ReverseRetirementScheme {
+  currentValue: number;
+  monthlyContribution: number;
+  returnPct: number;
+  isTaxFree: boolean;
+}
+
+export interface ReverseRetirementResult {
+  age: number;
+  netMonthly: number;
+  pot: number;
+}
+
+/**
+ * Omvendt beregning: finder den tidligste pensionsalder hvor den månedlige nettoudbetaling
+ * når et ønsket mål, ved at prøve hvert år fra i dag+1 til `maxAge`.
+ */
+export function findRetirementAge(
+  schemes: ReverseRetirementScheme[],
+  ageNow: number,
+  palRatePct: number,
+  inflationRatePct: number,
+  payoutYears: number,
+  payoutRet: number,
+  otherIncome: number,
+  assumptions: Assumptions,
+  targetMonthlyNet: number,
+  maxAge = 85
+): ReverseRetirementResult | null {
+  const startAge = Math.max(Math.ceil(ageNow) + 1, 50);
+  for (let age = startAge; age <= maxAge; age++) {
+    let taxablePot = 0;
+    let taxFreePot = 0;
+    schemes.forEach((s) => {
+      const proj = projectScheme(
+        { id: "x", personId: "x", name: "", currentValue: s.currentValue, monthlyContribution: s.monthlyContribution, returnPct: s.returnPct, ageNow, ageRetire: age },
+        palRatePct,
+        inflationRatePct
+      );
+      if (s.isTaxFree) taxFreePot += proj.finalNominal;
+      else taxablePot += proj.finalNominal;
+    });
+    const payout = simulatePayout({ taxablePot, taxFreePot, years: payoutYears, retPct: payoutRet, otherIncome, palRatePct, startAge: age }, assumptions);
+    if (payout.netMonthly >= targetMonthlyNet) {
+      return { age, netMonthly: payout.netMonthly, pot: payout.pot };
+    }
+  }
+  return null;
 }
 
 /** Estimeret folkepension (grundbeløb) — 2026-niveau, ikke-indkomstprøvet grundbeløb. */
