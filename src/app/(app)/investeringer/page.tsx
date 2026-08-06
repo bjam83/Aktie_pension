@@ -4,10 +4,10 @@ import { fmtKr, fmtPct } from "@/lib/finance/format";
 import { portfolioReturn } from "@/lib/finance/holdings";
 import { ACCOUNT_KIND_OPTIONS, labelFor } from "@/lib/constants";
 import { Stat } from "@/components/ui/Stat";
-import { removeAccountAction } from "@/lib/actions/investments";
 import { HoldingRow } from "./HoldingRow";
 import { AddHoldingForm } from "./AddHoldingForm";
 import { AddAccountForm } from "./AddAccountForm";
+import { RemoveAccountButton } from "./RemoveAccountButton";
 
 export default async function InvesteringerPage() {
   const bundle = await getHouseholdBundle();
@@ -60,17 +60,7 @@ export default async function InvesteringerPage() {
                   {owner ? ` · ${owner}` : " · Fælles"}
                 </p>
               </div>
-              <form
-                action={removeAccountAction}
-                onSubmit={(e) => {
-                  if (!confirm(`Slet “${acc.name}” og alle poster i den?`)) e.preventDefault();
-                }}
-              >
-                <input type="hidden" name="id" value={acc.id} />
-                <button className="btn ghost danger tiny" type="submit">
-                  Slet konto
-                </button>
-              </form>
+              <RemoveAccountButton accountId={acc.id} accountName={acc.name} />
             </div>
 
             {accHoldings.length > 0 ? (

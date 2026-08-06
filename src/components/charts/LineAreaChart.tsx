@@ -120,6 +120,7 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props)
   const tipPct = tip ? Math.min(88, Math.max(12, (xS(tip[xKey]) / W) * 100)) + "%" : "50%";
 
   return (
+    <div>
     <div
       ref={ref}
       style={{ position: "relative", userSelect: "none" }}
@@ -179,6 +180,22 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props)
             ))}
         </div>
       )}
+    </div>
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2.5 text-[12px]" style={{ color: "var(--muted)" }}>
+      {series.map((s) => (
+        <span key={s.key} className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            style={
+              s.dashed
+                ? { width: 14, height: 0, borderTop: `2px dashed ${s.stroke}`, display: "inline-block" }
+                : { width: 9, height: 9, borderRadius: 3, background: s.stroke, display: "inline-block", flexShrink: 0 }
+            }
+          />
+          {s.name || s.key}
+        </span>
+      ))}
+    </div>
     </div>
   );
 }
