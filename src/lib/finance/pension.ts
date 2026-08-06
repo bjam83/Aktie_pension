@@ -1,0 +1,153 @@
+import type { PensionScheme, ReturnBasis } from "@/lib/types";
+
+/** Alder ud fra fødselsdato (i dag). */
+export function ageFromBirthDate(birthDate: string | null, fallback = 40): number {
+  if (!birthDate) return fallback;
+  const today = new Date();
+  const bd = new Date(birthDate);
+  let age = today.getFullYear() - bd.getFullYear();
+  const m = today.getMonth() - bd.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
+  return age;
+}
+
+/** Hvilket afkast en ordning fremskrives med, afhængig af `return_basis`. */
+export function schemeReturnPct(s: Pick<PensionScheme, "expected_return_pct" | "fetched_return_pct" | "return_basis">): number {
+  const hist = Number(s.expected_return_pct) || 0;
+  const ytd = s.fetched_return_pct;
+  const basis = s.return_basis as ReturnBasis;
+  if (basis === "ytd" && ytd != null) return ytd;
+  if (basis === "blend" && ytd != null) return (hist + ytd) / 2;
+  return hist;
+}
+
+export interface SchemeCalcInput {
+  id: string;
+  personId: string;
+  name: string;
+  currentValue: number;
+  monthlyContribution: number;
+  returnPct: number;
+  ageNow: number;
+  ageRetire: number;
+}
+
+export interface SchemeProjection {
+  id: string;
+  years: number;
+  yearlyNominal: number[];
+  finalNominal: number;
+  finalReal: number;
+  totalPrincipal: number;
+  totalReturn: number;
+  palPaid: number;
+}
+
+/** Fremskriver én ordning måned-for-måned til ejerens pensionsalder, med PAL-skat på afkastet. */
+export function projectScheme(s: SchemeCalcInput, palRatePct: number, inflationRatePct: number): SchemeProjection {
+  const years = Math.max(0, Math.round(s.ageRetire - s.ageNow));
+  const pal = palRatePct / 100;
+  const infl = inflationRatePct / 100;
+  let bal = s.currentValue;
+  let principal = s.currentValue;
+  let palPaid = 0;
+  const yearlyNominal: number[] = [bal];
+  const rm = Math.pow(1 + s.returnPct / 100, 1 / 12) - 1;
+  for (let y = 1; y <= years; y++) {
+    for (let m = 0; m < 12; m++) {
+      const gain = bal * rm;
+      const tax = gain > 0 ? gain * pal : 0;
+      palPaid += tax;
+      bal += gain - tax + s.monthlyContribution;
+      principal += s.monthlyContribution;
+    }
+    yearlyNominal.push(bal);
+  }
+  const finalNominal = bal;
+  const finalReal = finalNominal / Math.pow(1 + infl, years);
+  return { id: s.id, years, yearlyNominal, finalNominal, finalReal, totalPrincipal: principal, totalReturn: finalNominal - principal, palPaid };
+}
+
+export interface HouseholdProjectionYear {
+  year: number;
+  age: number | null;
+  byScheme: Record<string, number>;
+  byPerson: Record<string, number>;
+  total: number;
+  real: number;
+}
+
+export interface HouseholdProjection {
+  perScheme: SchemeProjection[];
+  series: HouseholdProjectionYear[];
+  horizonYears: number;
+  totals: {
+    finalNominal: number;
+    finalReal: number;
+    totalPrincipal: number;
+    totalReturn: number;
+    palPaid: number;
+  };
+}
+
+/**
+ * Fremskriver hele husstandens ordninger på en fælles kalenderårs-akse.
+ * Hver ordning stopper indbetaling og holder sin værdi flad, når ejeren når sin egen pensionsalder,
+ * indtil den sidste person i husstanden når sin.
+ */
+export function projectHousehold(schemes: SchemeCalcInput[], palRatePct: number, inflationRatePct: number): HouseholdProjection {
+  const perScheme = schemes.map((s) => projectScheme(s, palRatePct, inflationRatePct));
+  const horizonYears = perScheme.reduce((m, p) => Math.max(m, p.years), 0);
+  const currentYear = new Date().getFullYear();
+
+  const series: HouseholdProjectionYear[] = [];
+  for (let k = 0; k <= horizonYears; k++) {
+    const byScheme: Record<string, number> = {};
+    const byPerson: Record<string, number> = {};
+    let total = 0;
+    schemes.forEach((s, i) => {
+      const p = perScheme[i];
+      const idx = Math.min(k, p.years);
+      const val = p.yearlyNominal[idx] ?? p.finalNominal;
+      byScheme[s.id] = val;
+      byPerson[s.personId] = (byPerson[s.personId] || 0) + val;
+      total += val;
+    });
+    series.push({
+      year: currentYear + k,
+      age: null,
+      byScheme,
+      byPerson,
+      total,
+      real: total / Math.pow(1 + inflationRatePct / 100, k),
+    });
+  }
+
+  const totals = {
+    finalNominal: perScheme.reduce((s, p) => s + p.finalNominal, 0),
+    totalPrincipal: perScheme.reduce((s, p) => s + p.totalPrincipal, 0),
+    totalReturn: perScheme.reduce((s, p) => s + p.totalReturn, 0),
+    palPaid: perScheme.reduce((s, p) => s + p.palPaid, 0),
+    finalReal: series.length ? series[series.length - 1].real : 0,
+  };
+
+  return { perScheme, series, horizonYears, totals };
+}
+
+/** Estimeret folkepension (grundbeløb) — 2026-niveau, ikke-indkomstprøvet grundbeløb. */
+export function estimateFolkepension(ageRetire: number, residenceYears = 40, folkepensionsalder = 67) {
+  if (ageRetire < folkepensionsalder) {
+    return { gross: 0, net: 0, tillaeg: 0, note: `Under folkepensionsalderen (${folkepensionsalder} år)` };
+  }
+  const frac = Math.min(residenceYears, 40) / 40;
+  const grundbeloeb = Math.round(8516 * frac);
+  const tillaeg = Math.round(8448 * frac);
+  const bruttoSkat = grundbeloeb * 0.37 * 0.88;
+  const net = Math.round(grundbeloeb - bruttoSkat);
+  return {
+    gross: grundbeloeb,
+    net,
+    tillaeg,
+    note: `Grundbeløb før skat (2026-niveau). Pensionstillæg på op til ${tillaeg.toLocaleString("da-DK")} kr./md. er indkomstprøvet og ikke medregnet.`,
+  };
+}
