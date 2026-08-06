@@ -23,6 +23,11 @@ function streamYears(schemeType: string, payoutYears: number | null, retirementA
   return fallbackYears;
 }
 
+/** Undgår grimme "15.0 år" for hele tal, men viser decimal for fx livrentens restlevetid. */
+function fmtYears(years: number): string {
+  return Number.isInteger(Math.round(years * 10) / 10) ? `${Math.round(years)}` : years.toFixed(1);
+}
+
 export default async function UdbetalingPage() {
   const bundle = await getHouseholdBundle();
   if (!bundle) redirect("/login");
@@ -52,30 +57,52 @@ export default async function UdbetalingPage() {
             label: s.name,
             pot: proj.finalNominal,
             years: streamYears(s.scheme_type, s.payout_years, p.retirement_age, cfg.years),
-            taxFree: s.scheme_type === "aldersopsparing",
+            taxMode: s.scheme_type === "aldersopsparing" ? "free" : "income",
           };
         });
 
+        // Frie midler ligger uden for pensionsramme: ingen PAL, men afkastdelen af hver udbetaling
+        // beskattes løbende som aktieindkomst (depot) eller med ASK-satsen — det er ikke skattefrit
+        // bare fordi kontoen er fremskrevet frem til pensionsalderen. Grupperes pr. beskatningsform,
+        // da de to har forskellige satser.
         let frieMidlerPot = 0;
         if (isPrimary && accounts.length > 0) {
           const yearsToRetirement = Math.max(0, p.retirement_age - ageNow);
-          frieMidlerPot = accounts.reduce((sum, acc) => {
+          const groups: Record<"depot" | "ask", { pot: number; contributed: number }> = {
+            depot: { pot: 0, contributed: 0 },
+            ask: { pot: 0, contributed: 0 },
+          };
+          accounts.forEach((acc) => {
+            const kind: "depot" | "ask" = acc.kind === "aktiesparekonto" ? "ask" : "depot";
             const sim = simulateFreeFunds(
               {
                 lump: Number(acc.current_value),
                 monthly: Number(acc.monthly_contribution),
                 ret: Number(acc.expected_return_pct),
                 years: yearsToRetirement,
-                tax: acc.kind === "aktiesparekonto" ? "ask" : "depot",
+                tax: kind,
               },
               assumptions,
               assumptions.inflation_rate
             );
-            return sum + sim.finalNominal;
-          }, 0);
-          if (frieMidlerPot > 0) {
-            streams.push({ key: "frie-midler", label: "Frie midler", pot: frieMidlerPot, years: cfg.years, taxFree: true });
-          }
+            groups[kind].pot += sim.finalNominal;
+            groups[kind].contributed += sim.contributed;
+          });
+          frieMidlerPot = groups.depot.pot + groups.ask.pot;
+
+          (["depot", "ask"] as const).forEach((kind) => {
+            const g = groups[kind];
+            if (g.pot <= 0) return;
+            const gainSharePct = Math.max(0, Math.min(1, (g.pot - g.contributed) / g.pot));
+            streams.push({
+              key: `frie-midler-${kind}`,
+              label: kind === "ask" ? "Frie midler (aktiesparekonto)" : "Frie midler (depot)",
+              pot: g.pot,
+              years: cfg.years,
+              taxMode: kind === "ask" ? "gains-ask" : "gains-depot",
+              gainSharePct,
+            });
+          });
         }
 
         const payout = streams.length ? simulateMultiPayout(streams, cfg.ret, cfg.otherIncome, assumptions.pal_rate, p.retirement_age, assumptions) : null;
@@ -104,10 +131,12 @@ export default async function UdbetalingPage() {
                 Ratepension bruger sin egen udbetalingslængde (sæt under fanen Pension). Livrente er livsvarig og beregnes som opsparing ÷
                 forventet restlevetid ved udbetalingsstart (unisex, fremadrettede levetidsforudsætninger, samme princip som
                 pensionsselskaberne bruger), justeret for afkast
-                {livrenteStream ? ` — ca. ${livrenteStream.years.toFixed(1)} år, svarende til en forventet levealder på ${(p.retirement_age + livrenteStream.years).toFixed(1)} år` : ""}.
+                {livrenteStream ? ` — ca. ${fmtYears(livrenteStream.years)} år, svarende til en forventet levealder på ${(p.retirement_age + livrenteStream.years).toFixed(1)} år` : ""}.
                 I virkeligheden stopper en livrente ikke selvom man lever længere end det — det udjævnes på tværs af alle forsikrede — men
                 her bruges restlevetiden som en realistisk tilnærmelse til den forventede udbetaling.
-                {isPrimary && frieMidlerPot > 0 ? " Frie midler er fælles for husstanden og er lagt ind her, udbetalt over samme antal år." : ""}{" "}
+                {isPrimary && frieMidlerPot > 0
+                  ? " Frie midler er fælles for husstanden og er lagt ind her, udbetalt over samme antal år. De er ikke skattefri: afkastdelen af hver udbetaling beskattes løbende som aktieindkomst eller med ASK-satsen (der betales ikke PAL-skat, da det ligger uden for pensionsramme) — kun den del der stammer fra indbetalt kapital er skattefri at få udbetalt."
+                  : ""}{" "}
                 Feltet &quot;Udbetalingsår&quot; herover gælder aldersopsparing, frie midler, arbejdsmarkedspension og andre ordninger.
               </p>
             </div>
@@ -161,9 +190,12 @@ export default async function UdbetalingPage() {
                         <tr key={s.key}>
                           <td>
                             {s.label}
-                            {s.taxFree && <span className="chip" style={{ marginLeft: 6 }}>Skattefri</span>}
+                            {s.taxMode === "free" && <span className="chip" style={{ marginLeft: 6 }}>Skattefri</span>}
+                            {(s.taxMode === "gains-ask" || s.taxMode === "gains-depot") && (
+                              <span className="chip" style={{ marginLeft: 6 }}>{s.taxMode === "gains-ask" ? "ASK-skat" : "Aktieindkomstskat"}</span>
+                            )}
                           </td>
-                          <td>{s.years} år</td>
+                          <td>{fmtYears(s.years)} år</td>
                           <td>{fmtKr(s.grossAnnual)}</td>
                         </tr>
                       ))}
