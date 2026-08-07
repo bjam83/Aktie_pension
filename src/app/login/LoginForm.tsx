@@ -21,14 +21,14 @@ export function LoginForm({ next }: { next: string }) {
         <input className="input" id="password" name="password" type="password" autoComplete="current-password" required />
       </div>
       {state.error && (
-        <p className="text-[12.5px]" style={{ color: "var(--danger)" }}>
+        <p className="text-[12px]" style={{ color: "var(--danger)" }}>
           {state.error}
         </p>
       )}
       <button className="btn" type="submit" disabled={pending} style={{ justifyContent: "center", marginTop: 6 }}>
         {pending ? "Logger ind…" : "Log ind"}
       </button>
-      <div className="flex justify-between text-[12.5px] mt-1" style={{ color: "var(--muted)" }}>
+      <div className="flex justify-between text-[12px] mt-1" style={{ color: "var(--muted)" }}>
         <Link className="underline" href="/glemt-kodeord">
           Glemt adgangskode?
         </Link>

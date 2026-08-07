@@ -23,7 +23,7 @@ export function UpdatePasswordForm() {
   }, []);
 
   if (!ready) {
-    return <p className="text-[13.5px]" style={{ color: "var(--muted)" }}>Bekræfter link…</p>;
+    return <p className="text-[13px]" style={{ color: "var(--muted)" }}>Bekræfter link…</p>;
   }
 
   return (
@@ -37,7 +37,7 @@ export function UpdatePasswordForm() {
         <input className="input" id="passwordConfirm" name="passwordConfirm" type="password" autoComplete="new-password" minLength={8} required />
       </div>
       {state.error && (
-        <p className="text-[12.5px]" style={{ color: "var(--danger)" }}>
+        <p className="text-[12px]" style={{ color: "var(--danger)" }}>
           {state.error}
         </p>
       )}

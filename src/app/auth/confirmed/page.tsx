@@ -29,7 +29,7 @@ export default function ConfirmedPage() {
 
   return (
     <AuthShell title="Velkommen" subtitle="">
-      <p className="text-[13.5px]" style={{ color: "var(--muted)" }}>
+      <p className="text-[13px]" style={{ color: "var(--muted)" }}>
         {msg}
       </p>
     </AuthShell>

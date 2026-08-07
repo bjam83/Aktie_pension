@@ -87,10 +87,25 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props)
       fillEls.push(<path key={"f" + s.key} d={path} fill={s.fill} fillOpacity={s.fillOp ?? 0.7} stroke="none" />);
     });
 
-  const lineEls = series.map((s) => {
+  const lineEls = series.flatMap((s) => {
     const pts = data.map((d, i) => [xS(d[xKey]), yS(getY(d, i, s.key))] as const);
     const path = pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
-    return <path key={"l" + s.key} d={path} fill="none" stroke={s.stroke} strokeWidth={s.width ?? 2} strokeDasharray={s.dashed ? "5 4" : undefined} />;
+    const last = pts[pts.length - 1];
+    return [
+      <path
+        key={"l" + s.key}
+        d={path}
+        fill="none"
+        stroke={s.stroke}
+        strokeWidth={s.width ?? 2}
+        strokeDasharray={s.dashed ? "5 4" : undefined}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />,
+      !s.dashed && (
+        <circle key={"end" + s.key} cx={last[0]} cy={last[1]} r={3.5} fill={s.stroke} stroke="var(--surface)" strokeWidth={1.5} />
+      ),
+    ];
   });
 
   const tipIdx = tip ? data.indexOf(tip) : -1;
@@ -165,17 +180,21 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props)
             minWidth: 148,
             padding: "10px 12px",
             borderRadius: 10,
+            boxShadow: "var(--shadow-pop)",
           }}
         >
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, marginBottom: 6, fontSize: 12.5 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, marginBottom: 6, fontSize: "var(--fs-base)" }}>
             {xFmt ? xFmt(tip[xKey]) : tip[xKey]}
           </div>
           {series
             .filter((s) => !s.dashed)
             .map((s) => (
-              <div key={s.key} style={{ display: "flex", justifyContent: "space-between", gap: 18, fontFamily: "var(--font-display)" }}>
+              <div
+                key={s.key}
+                style={{ display: "flex", justifyContent: "space-between", gap: 18, fontFamily: "var(--font-display)", fontSize: "var(--fs-sm)" }}
+              >
                 <span style={{ color: s.stroke }}>{s.name || s.key}</span>
-                <span>{fmtKr(tip[s.key] || 0)}</span>
+                <span className="num">{fmtKr(tip[s.key] || 0)}</span>
               </div>
             ))}
         </div>

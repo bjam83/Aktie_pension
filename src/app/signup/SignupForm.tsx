@@ -12,7 +12,7 @@ export function SignupForm() {
   if (state.info) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-[13.5px]" style={{ color: "var(--ink)" }}>
+        <p className="text-[13px]" style={{ color: "var(--ink)" }}>
           {state.info}
         </p>
         <Link className="btn ghost" href="/login" style={{ justifyContent: "center" }}>
@@ -41,14 +41,14 @@ export function SignupForm() {
         <input className="input" id="passwordConfirm" name="passwordConfirm" type="password" autoComplete="new-password" minLength={8} required />
       </div>
       {state.error && (
-        <p className="text-[12.5px]" style={{ color: "var(--danger)" }}>
+        <p className="text-[12px]" style={{ color: "var(--danger)" }}>
           {state.error}
         </p>
       )}
       <button className="btn" type="submit" disabled={pending} style={{ justifyContent: "center", marginTop: 6 }}>
         {pending ? "Opretter…" : "Opret bruger"}
       </button>
-      <p className="text-[12.5px] text-center mt-1" style={{ color: "var(--muted)" }}>
+      <p className="text-[12px] text-center mt-1" style={{ color: "var(--muted)" }}>
         Har du allerede en bruger?{" "}
         <Link className="underline" href="/login">
           Log ind

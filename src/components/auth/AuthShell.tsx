@@ -5,7 +5,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
         <div className="mb-7 text-center">
           <div className="eyebrow mb-2">Pension &amp; opsparing</div>
           <h1 className="h1">{title}</h1>
-          <p className="mt-1.5 text-[13.5px]" style={{ color: "var(--muted)" }}>
+          <p className="mt-1.5 text-[13px]" style={{ color: "var(--muted)" }}>
             {subtitle}
           </p>
         </div>

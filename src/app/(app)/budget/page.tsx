@@ -106,7 +106,7 @@ export default async function BudgetPage() {
         <h3>Indkomst vs. udgifter</h3>
         <div className="grid cols-2 gap-3 mb-2">
           <div>
-            <div className="text-[11.5px] font-medium mb-2" style={{ color: "var(--muted)" }}>
+            <div className="text-[11px] font-medium mb-2" style={{ color: "var(--muted)" }}>
               INDKOMST
             </div>
             <div className="flex justify-between text-[13px]">
@@ -117,7 +117,7 @@ export default async function BudgetPage() {
             </div>
           </div>
           <div>
-            <div className="text-[11.5px] font-medium mb-2" style={{ color: "var(--muted)" }}>
+            <div className="text-[11px] font-medium mb-2" style={{ color: "var(--muted)" }}>
               UDGIFTER
             </div>
             <div className="flex justify-between text-[13px]">
@@ -230,7 +230,7 @@ export default async function BudgetPage() {
         <p className="cap">Pension, frie midler, ejendomme, biler og andre aktiver — i dag og ved pension.</p>
         <div className="grid cols-2 gap-4">
           <div>
-            <div className="text-[11.5px] font-medium mb-2" style={{ color: "var(--muted)" }}>
+            <div className="text-[11px] font-medium mb-2" style={{ color: "var(--muted)" }}>
               I DAG
             </div>
             <div className="flex justify-between text-[13px] mb-1">
@@ -267,7 +267,7 @@ export default async function BudgetPage() {
             </div>
           </div>
           <div>
-            <div className="text-[11.5px] font-medium mb-2" style={{ color: "var(--muted)" }}>
+            <div className="text-[11px] font-medium mb-2" style={{ color: "var(--muted)" }}>
               VED PENSION{horizonYears >= 1 ? ` (om ${horizonYears} år)` : ""}
             </div>
             <div className="flex justify-between text-[13px] mb-1">
@@ -307,7 +307,7 @@ export default async function BudgetPage() {
 
         {netWorthSeries.length >= 2 ? (
           <div className="mt-5">
-            <h3 style={{ fontSize: 14.5 }}>Nettoformue over tid</h3>
+            <h3>Nettoformue over tid</h3>
             <p className="cap">Areal = sammensætning af formuen · stiplet linje = samlet nettoformue (efter gæld).</p>
             <LineAreaChart
               data={netWorthSeries as unknown as Record<string, number>[]}

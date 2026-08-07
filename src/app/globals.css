@@ -8,17 +8,31 @@
   --surface: #FFFFFF;
   --ink: #1C2A27;
   --muted: #6B7B76;
-  --faint: #9DAAA4;
+  --faint: #7E8F89;
   --line: #E2E6E0;
   --grow: #1F7A6B;
   --grow-soft: #7FB9AC;
   --s2: #3E6E96;
   --s2-soft: #9DBBD4;
   --real: #B25A38;
-  --amber: #C2922E;
+  --amber: #A87A20;
   --amber-soft: #E2C788;
   --indbetalt: #AEB9B3;
   --danger: #C23E3E;
+
+  /* Type scale — every font-size in the app resolves to one of these steps. */
+  --fs-2xs: 10.5px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 15px;
+  --fs-xl: 22px;
+  --fs-2xl: 26px;
+
+  /* Elevation — one soft, consistent shadow used for every raised surface. */
+  --shadow-card: 0 1px 2px rgba(28, 42, 39, 0.04), 0 10px 24px -14px rgba(28, 42, 39, 0.16);
+  --shadow-pop: 0 4px 10px rgba(28, 42, 39, 0.06), 0 16px 32px -12px rgba(28, 42, 39, 0.22);
 }
 
 @theme inline {
@@ -64,13 +78,13 @@ body {
 .h1 {
   font-family: var(--font-display), system-ui, sans-serif;
   font-weight: 600;
-  font-size: 25px;
+  font-size: var(--fs-2xl);
   letter-spacing: -0.01em;
   margin: 0;
 }
 
 .eyebrow {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--faint);
@@ -82,24 +96,25 @@ body {
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 18px;
+  box-shadow: var(--shadow-card);
 }
 
 .card h3 {
   font-family: var(--font-display), system-ui, sans-serif;
   font-weight: 600;
-  font-size: 14.5px;
+  font-size: var(--fs-lg);
   margin: 0 0 2px;
 }
 
 .card .cap {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   margin: 0 0 14px;
 }
 
 .field label {
   display: block;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--muted);
   font-weight: 500;
   margin-bottom: 5px;
@@ -108,18 +123,23 @@ body {
 .input, select.input, textarea.input {
   width: 100%;
   font-family: var(--font-display), system-ui, sans-serif;
-  font-size: 14px;
+  font-size: var(--fs-md);
   color: var(--ink);
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 9px 11px;
   outline: none;
-  transition: border 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input:hover {
+  border-color: var(--faint);
 }
 
 .input:focus {
   border-color: var(--grow);
+  box-shadow: 0 0 0 3px rgba(31, 122, 107, 0.14);
 }
 
 .btn {
@@ -127,13 +147,13 @@ body {
   cursor: pointer;
   font-family: var(--font-display), system-ui, sans-serif;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--fs-base);
   background: var(--grow);
   color: #fff;
   border: none;
   border-radius: 9px;
   padding: 9px 15px;
-  transition: filter 0.15s;
+  transition: filter 0.15s, transform 0.1s, background-color 0.15s;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -143,24 +163,52 @@ body {
   filter: brightness(1.07);
 }
 
+.btn:active {
+  transform: translateY(1px);
+  filter: brightness(0.97);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--grow);
+  outline-offset: 2px;
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: default;
+  transform: none;
 }
 
 .btn.ghost {
-  background: var(--paper);
+  background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);
+}
+
+.btn.ghost:hover {
+  filter: none;
+  background: var(--paper);
+  border-color: var(--faint);
 }
 
 .btn.danger {
   background: var(--danger);
 }
 
+.btn.ghost.danger {
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--line);
+}
+
+.btn.ghost.danger:hover {
+  background: #FBEEEE;
+  border-color: var(--danger);
+}
+
 .btn.tiny {
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 
 .chip {
@@ -171,7 +219,7 @@ body {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 4px 10px;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-family: var(--font-display), system-ui, sans-serif;
   color: var(--ink);
 }
@@ -179,7 +227,7 @@ body {
 .dot {
   width: 9px;
   height: 9px;
-  border-radius: 3px;
+  border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
 }
@@ -189,10 +237,11 @@ body {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 14px 15px;
+  box-shadow: var(--shadow-card);
 }
 
 .stat .lab {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--muted);
   font-weight: 500;
   display: flex;
@@ -203,13 +252,13 @@ body {
 .stat .val {
   font-family: var(--font-display), system-ui, sans-serif;
   font-weight: 600;
-  font-size: 21px;
+  font-size: var(--fs-xl);
   margin-top: 6px;
   letter-spacing: -0.01em;
 }
 
 .stat .hint {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--faint);
   margin-top: 3px;
 }
@@ -217,14 +266,14 @@ body {
 .tbl {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 
 .tbl th {
   text-align: left;
   font-weight: 500;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 7px 8px;
@@ -242,15 +291,23 @@ body {
   border-bottom: none;
 }
 
+.tbl tbody tr {
+  transition: background-color 0.12s;
+}
+
+.tbl tbody tr:hover {
+  background: var(--paper);
+}
+
 .empty {
   color: var(--faint);
-  font-size: 13px;
+  font-size: var(--fs-base);
   text-align: center;
   padding: 26px 10px;
 }
 
 .note {
-  font-size: 11.5px;
+  font-size: var(--fs-sm);
   color: var(--muted);
   background: var(--paper);
   border: 1px solid var(--line);
@@ -268,13 +325,14 @@ body {
 
 .tabnav a {
   font-family: var(--font-display), system-ui, sans-serif;
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 500;
   color: var(--muted);
   padding: 9px 14px 12px;
   position: relative;
   border-radius: 6px 6px 0 0;
   text-decoration: none;
+  transition: color 0.15s;
 }
 
 .tabnav a:hover {
@@ -306,6 +364,7 @@ body {
   border-top: 1px solid var(--line);
   z-index: 200;
   padding: 4px 0 env(safe-area-inset-bottom, 6px);
+  box-shadow: 0 -6px 20px -8px rgba(28, 42, 39, 0.14);
   /* iOS Safari resizes the visual viewport as its own toolbar shows/hides;
      anchoring to the layout viewport keeps this bar from jumping mid-scroll. */
   -webkit-transform: translateZ(0);
@@ -331,10 +390,11 @@ body {
   cursor: pointer;
   padding: 7px 4px;
   font-family: var(--font-body), system-ui, sans-serif;
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   font-weight: 500;
   color: var(--faint);
   text-decoration: none;
+  transition: color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -369,9 +429,10 @@ body {
   background: var(--paper);
   border: 1px solid var(--line);
   color: var(--ink);
-  font-size: 13px;
+  font-size: var(--fs-base);
   font-weight: 500;
   text-decoration: none;
+  transition: border-color 0.15s;
 }
 
 .bnav-sheet-item[data-active="true"] {

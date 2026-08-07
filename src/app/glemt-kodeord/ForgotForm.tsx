@@ -12,7 +12,7 @@ export function ForgotForm() {
   if (state.info) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-[13.5px]">{state.info}</p>
+        <p className="text-[13px]">{state.info}</p>
         <Link className="btn ghost" href="/login" style={{ justifyContent: "center" }}>
           Til login
         </Link>
@@ -27,14 +27,14 @@ export function ForgotForm() {
         <input className="input" id="email" name="email" type="email" autoComplete="email" required />
       </div>
       {state.error && (
-        <p className="text-[12.5px]" style={{ color: "var(--danger)" }}>
+        <p className="text-[12px]" style={{ color: "var(--danger)" }}>
           {state.error}
         </p>
       )}
       <button className="btn" type="submit" disabled={pending} style={{ justifyContent: "center", marginTop: 6 }}>
         {pending ? "Sender…" : "Send nulstillingslink"}
       </button>
-      <p className="text-[12.5px] text-center mt-1" style={{ color: "var(--muted)" }}>
+      <p className="text-[12px] text-center mt-1" style={{ color: "var(--muted)" }}>
         <Link className="underline" href="/login">
           Tilbage til login
         </Link>

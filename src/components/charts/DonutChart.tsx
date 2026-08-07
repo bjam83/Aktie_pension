@@ -1,4 +1,4 @@
-import { fmtKr } from "@/lib/finance/format";
+import { fmtKr, fmtAxis } from "@/lib/finance/format";
 
 export interface DonutSlice {
   name: string;
@@ -43,11 +43,31 @@ export function DonutChart({ data, size = 200, ir = 52, or: outer = 80 }: { data
 
   return (
     <div>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block", margin: "0 auto" }}>
-        {slices.filter((s) => s.path).map((s, i) => (
-          <path key={i} d={s.path!} fill={s.color} />
-        ))}
-      </svg>
+      <div style={{ position: "relative", width: size, margin: "0 auto" }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block" }}>
+          {slices.filter((s) => s.path).map((s, i) => (
+            <path key={i} d={s.path!} fill={s.color} strokeLinejoin="round" />
+          ))}
+        </svg>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "none",
+          }}
+        >
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "var(--fs-lg)", color: "var(--ink)" }}>
+            {fmtAxis(total)}
+          </span>
+          <span className="eyebrow" style={{ fontSize: 9.5, marginTop: 2 }}>
+            I alt
+          </span>
+        </div>
+      </div>
       <div className="flex flex-wrap gap-3.5 mt-2 justify-center text-[12px]" style={{ color: "var(--muted)" }}>
         {data.map((e, i) => (
           <span key={i} className="flex items-center gap-1.5">
