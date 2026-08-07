@@ -17,12 +17,19 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Pension & opsparing",
   description: "Husstandens overblik over pension, investeringer og budget",
+  applicationName: "Pension",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Pension",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#1F7A6B",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
