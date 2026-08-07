@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { updateMeasurementAction, removeMeasurementAction, type FormState } from "@/lib/actions/pensionMeasurements";
 import { MoneyField } from "@/components/ui/MoneyField";
+import { PercentField } from "@/components/ui/PercentField";
 import { fmtKr, fmtPct, fmtDate } from "@/lib/finance/format";
 import type { PensionMeasurement } from "@/lib/types";
 
@@ -32,23 +33,13 @@ export function MeasurementRow({ measurement }: { measurement: PensionMeasuremen
               />
             </div>
             <MoneyField label="Samlet pensionsværdi" name="total_value" defaultValue={measurement.total_value} />
-            <div className="field">
-              <label htmlFor={`meas-ret-${measurement.id}`}>Opnået afkast (valgfrit)</label>
-              <div className="relative">
-                <input
-                  className="input pr-9"
-                  id={`meas-ret-${measurement.id}`}
-                  name="return_pct"
-                  type="number"
-                  step={0.1}
-                  defaultValue={measurement.return_pct ?? ""}
-                  placeholder="Fx 6,2"
-                />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none" style={{ color: "var(--faint)" }}>
-                  %
-                </span>
-              </div>
-            </div>
+            <PercentField
+              label="Opnået afkast (valgfrit)"
+              name="return_pct"
+              id={`meas-ret-${measurement.id}`}
+              defaultValue={measurement.return_pct}
+              placeholder="Fx 6,2"
+            />
             <div className="flex items-end gap-2">
               <button className="btn" type="submit" disabled={pending}>
                 {pending ? "Gemmer…" : "Gem"}

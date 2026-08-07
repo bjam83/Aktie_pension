@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { updateSchemeAction, removeSchemeAction, type FormState } from "@/lib/actions/pensionSchemes";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { MoneyField } from "@/components/ui/MoneyField";
+import { PercentField } from "@/components/ui/PercentField";
 import { SCHEME_TYPE_OPTIONS, labelFor } from "@/lib/constants";
 import { fmtKr, fmtPct } from "@/lib/finance/format";
 import { schemeReturnPct } from "@/lib/finance/pension";
@@ -58,22 +59,7 @@ export function SchemeCard({ scheme, persons, color }: { scheme: PensionScheme; 
           <TextField label="Udbyder" name="provider" defaultValue={scheme.provider} placeholder="Fx AP Pension" />
           <MoneyField label="Nuværende værdi" name="current_value" defaultValue={scheme.current_value} />
           <MoneyField label="Månedlig indbetaling" name="monthly_contribution" defaultValue={scheme.monthly_contribution} />
-          <div className="field">
-            <label htmlFor={`ret-${scheme.id}`}>Forventet årligt afkast</label>
-            <div className="relative">
-              <input
-                className="input pr-9"
-                id={`ret-${scheme.id}`}
-                name="expected_return_pct"
-                type="number"
-                step={0.1}
-                defaultValue={scheme.expected_return_pct}
-              />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none" style={{ color: "var(--faint)" }}>
-                %
-              </span>
-            </div>
-          </div>
+          <PercentField label="Forventet årligt afkast" name="expected_return_pct" id={`ret-${scheme.id}`} defaultValue={scheme.expected_return_pct} />
           {schemeType === "ratepension" && (
             <div className="field">
               <label htmlFor={`payout-years-${scheme.id}`}>Udbetalingslængde</label>

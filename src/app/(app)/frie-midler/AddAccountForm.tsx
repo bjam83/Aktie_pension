@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { addAccountAction, type FormState } from "@/lib/actions/investments";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { MoneyField } from "@/components/ui/MoneyField";
+import { PercentField } from "@/components/ui/PercentField";
 import { ACCOUNT_KIND_OPTIONS } from "@/lib/constants";
 import type { Person } from "@/lib/types";
 
@@ -25,15 +26,7 @@ export function AddAccountForm({ persons }: { persons: Person[] }) {
         <SelectField label="Ejer" name="person_id" options={[{ value: "", label: "Fælles" }, ...persons.map((p) => ({ value: p.id, label: p.name }))]} />
         <MoneyField label="Startværdi" name="current_value" defaultValue={0} />
         <MoneyField label="Månedlig indbetaling" name="monthly_contribution" defaultValue={0} />
-        <div className="field">
-          <label htmlFor="new-acc-ret">Forventet årligt afkast</label>
-          <div className="relative">
-            <input className="input pr-9" id="new-acc-ret" name="expected_return_pct" type="number" step={0.1} defaultValue={6} />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none" style={{ color: "var(--faint)" }}>
-              %
-            </span>
-          </div>
-        </div>
+        <PercentField label="Forventet årligt afkast" name="expected_return_pct" id="new-acc-ret" defaultValue={6} />
         <div className="field">
           <label htmlFor="new-acc-years">Fremskriv over</label>
           <div className="relative">

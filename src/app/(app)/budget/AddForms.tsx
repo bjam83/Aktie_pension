@@ -10,6 +10,7 @@ import {
 } from "@/lib/actions/budget";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { MoneyField } from "@/components/ui/MoneyField";
+import { PercentField } from "@/components/ui/PercentField";
 import {
   BUDGET_DIRECTION_OPTIONS,
   BUDGET_FREQUENCY_OPTIONS,
@@ -61,15 +62,7 @@ export function AddAssetForm({ persons }: { persons: Person[] }) {
         <TextField label="Navn" name="name" placeholder="Fx “Lejlighed”" required />
         <SelectField label="Type" name="kind" defaultValue="andet" options={ASSET_KIND_OPTIONS} />
         <MoneyField label="Værdi" name="value" defaultValue={0} />
-        <div className="field">
-          <label htmlFor="new-asset-growth">Årlig værdiudvikling</label>
-          <div className="relative">
-            <input className="input pr-9" id="new-asset-growth" name="growth_rate_pct" type="number" step={0.1} defaultValue={0} />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none" style={{ color: "var(--faint)" }}>
-              %
-            </span>
-          </div>
-        </div>
+        <PercentField label="Årlig værdiudvikling" name="growth_rate_pct" id="new-asset-growth" defaultValue={0} />
         <SelectField label="Ejer" name="owner_id" options={[{ value: "", label: "Fælles" }, ...persons.map((p) => ({ value: p.id, label: p.name }))]} />
         <div className="flex items-end">
           <button className="btn" type="submit" disabled={pending}>
@@ -98,15 +91,7 @@ export function AddLiabilityForm({ persons }: { persons: Person[] }) {
         <TextField label="Navn" name="name" placeholder="Fx “Billån”" required />
         <SelectField label="Type" name="kind" defaultValue="andet" options={LIABILITY_KIND_OPTIONS} />
         <MoneyField label="Restgæld" name="remaining_debt" defaultValue={0} />
-        <div className="field">
-          <label htmlFor="liab-rate">Rente</label>
-          <div className="relative">
-            <input className="input pr-9" id="liab-rate" name="interest_rate_pct" type="number" step={0.1} />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none" style={{ color: "var(--faint)" }}>
-              %
-            </span>
-          </div>
-        </div>
+        <PercentField label="Rente" name="interest_rate_pct" id="liab-rate" />
         <SelectField label="Ejer" name="owner_id" options={[{ value: "", label: "Fælles" }, ...persons.map((p) => ({ value: p.id, label: p.name }))]} />
         <div className="flex items-end">
           <button className="btn" type="submit" disabled={pending}>

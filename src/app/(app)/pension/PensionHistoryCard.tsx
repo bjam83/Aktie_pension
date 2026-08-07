@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { addMeasurementAction, type FormState } from "@/lib/actions/pensionMeasurements";
 import { MoneyField } from "@/components/ui/MoneyField";
+import { PercentField } from "@/components/ui/PercentField";
 import { historicalAverageReturn } from "@/lib/finance/pension";
 import { fmtKr, fmtPct, fmtDate } from "@/lib/finance/format";
 import { LineAreaChart } from "@/components/charts/LineAreaChart";
@@ -93,15 +94,7 @@ export function PensionHistoryCard({ personId, personName, measurements, color }
             <input className="input" id={`meas-date-${personId}`} name="measured_on" type="date" defaultValue={today()} max={today()} required />
           </div>
           <MoneyField label="Samlet pensionsværdi" name="total_value" defaultValue={0} />
-          <div className="field">
-            <label htmlFor={`meas-ret-${personId}`}>Opnået afkast (valgfrit)</label>
-            <div className="relative">
-              <input className="input pr-9" id={`meas-ret-${personId}`} name="return_pct" type="number" step={0.1} placeholder="Fx 6,2" />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none" style={{ color: "var(--faint)" }}>
-                %
-              </span>
-            </div>
-          </div>
+          <PercentField label="Opnået afkast (valgfrit)" name="return_pct" id={`meas-ret-${personId}`} placeholder="Fx 6,2" />
           <div className="flex items-end">
             <button className="btn" type="submit" disabled={pending}>
               {pending ? "Tilføjer…" : "+ Tilføj måling"}

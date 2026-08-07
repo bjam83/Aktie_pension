@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { updateAccountAction, removeAccountAction, type FormState } from "@/lib/actions/investments";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { MoneyField } from "@/components/ui/MoneyField";
+import { PercentField } from "@/components/ui/PercentField";
 import { ACCOUNT_KIND_OPTIONS, labelFor } from "@/lib/constants";
 import type { InvestmentAccount, Person } from "@/lib/types";
 
@@ -44,15 +45,7 @@ export function AccountRow({ account, persons, owner }: { account: InvestmentAcc
             />
             <MoneyField label="Startværdi" name="current_value" defaultValue={account.current_value} />
             <MoneyField label="Månedlig indbetaling" name="monthly_contribution" defaultValue={account.monthly_contribution} />
-            <div className="field">
-              <label htmlFor={`acc-ret-${account.id}`}>Forventet årligt afkast</label>
-              <div className="relative">
-                <input className="input pr-9" id={`acc-ret-${account.id}`} name="expected_return_pct" type="number" step={0.1} defaultValue={account.expected_return_pct} />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none" style={{ color: "var(--faint)" }}>
-                  %
-                </span>
-              </div>
-            </div>
+            <PercentField label="Forventet årligt afkast" name="expected_return_pct" id={`acc-ret-${account.id}`} defaultValue={account.expected_return_pct} />
             <div className="field">
               <label htmlFor={`acc-years-${account.id}`}>Fremskriv over</label>
               <div className="relative">

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { updateAssetAction, removeAssetAction, type FormState } from "@/lib/actions/budget";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { MoneyField } from "@/components/ui/MoneyField";
+import { PercentField } from "@/components/ui/PercentField";
 import { ASSET_KIND_OPTIONS, labelFor } from "@/lib/constants";
 import { fmtKr, fmtPct } from "@/lib/finance/format";
 import type { Asset, Person } from "@/lib/types";
@@ -36,15 +37,7 @@ export function AssetRow({ asset, persons }: { asset: Asset; persons: Person[] }
           <TextField label="Navn" name="name" defaultValue={asset.name} required />
           <SelectField label="Type" name="kind" defaultValue={asset.kind} options={ASSET_KIND_OPTIONS} />
           <MoneyField label="Værdi" name="value" defaultValue={asset.value} />
-          <div className="field">
-            <label htmlFor={`growth-${asset.id}`}>Årlig værdiudvikling</label>
-            <div className="relative">
-              <input className="input pr-9" id={`growth-${asset.id}`} name="growth_rate_pct" type="number" step={0.1} defaultValue={asset.growth_rate_pct} />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none" style={{ color: "var(--faint)" }}>
-                %
-              </span>
-            </div>
-          </div>
+          <PercentField label="Årlig værdiudvikling" name="growth_rate_pct" id={`growth-${asset.id}`} defaultValue={asset.growth_rate_pct} />
           <SelectField
             label="Ejer"
             name="owner_id"
