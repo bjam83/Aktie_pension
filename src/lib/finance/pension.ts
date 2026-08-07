@@ -1,4 +1,4 @@
-import type { Assumptions, PensionScheme, ReturnBasis } from "@/lib/types";
+import type { Assumptions, PensionScheme } from "@/lib/types";
 import { simulatePayout } from "./payout";
 
 /** Alder ud fra fødselsdato (i dag). */
@@ -12,14 +12,9 @@ export function ageFromBirthDate(birthDate: string | null, fallback = 40): numbe
   return age;
 }
 
-/** Hvilket afkast en ordning fremskrives med, afhængig af `return_basis`. */
-export function schemeReturnPct(s: Pick<PensionScheme, "expected_return_pct" | "fetched_return_pct" | "return_basis">): number {
-  const hist = Number(s.expected_return_pct) || 0;
-  const ytd = s.fetched_return_pct;
-  const basis = s.return_basis as ReturnBasis;
-  if (basis === "ytd" && ytd != null) return ytd;
-  if (basis === "blend" && ytd != null) return (hist + ytd) / 2;
-  return hist;
+/** Det forventede årlige afkast en ordning fremskrives med. */
+export function schemeReturnPct(s: Pick<PensionScheme, "expected_return_pct">): number {
+  return Number(s.expected_return_pct) || 0;
 }
 
 export interface SchemeCalcInput {

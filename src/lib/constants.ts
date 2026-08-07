@@ -6,12 +6,6 @@ export const SCHEME_TYPE_OPTIONS = [
   { value: "andet", label: "Andet" },
 ];
 
-export const RETURN_BASIS_OPTIONS = [
-  { value: "historical", label: "Historisk (manuelt)" },
-  { value: "ytd", label: "Årets afkast" },
-  { value: "blend", label: "Gennemsnit" },
-];
-
 export const ACCOUNT_KIND_OPTIONS = [
   { value: "frie_midler", label: "Depot (aktieindkomstskat, klassisk)" },
   { value: "aktiesparekonto", label: "Aktiesparekonto (flad ASK-skat)" },

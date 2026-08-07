@@ -59,8 +59,6 @@ export async function updateSchemeAction(_prev: FormState, formData: FormData): 
   const person_id = String(formData.get("person_id") || "");
   if (!name || !person_id) return { error: "Udfyld navn og vælg person." };
 
-  const fetchedRaw = formData.get("fetched_return_pct");
-  const fetched_return_pct = fetchedRaw === "" || fetchedRaw == null ? null : Number(fetchedRaw);
   const scheme_type = String(formData.get("scheme_type") || "ratepension");
 
   const { error } = await supabase
@@ -73,8 +71,6 @@ export async function updateSchemeAction(_prev: FormState, formData: FormData): 
       current_value: num(formData, "current_value"),
       monthly_contribution: num(formData, "monthly_contribution"),
       expected_return_pct: num(formData, "expected_return_pct", 6),
-      fetched_return_pct,
-      return_basis: String(formData.get("return_basis") || "historical"),
       payout_years: payoutYears(formData, scheme_type),
       notes: String(formData.get("notes") || "") || null,
     })

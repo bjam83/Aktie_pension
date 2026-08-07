@@ -498,7 +498,6 @@ export type Database = {
           created_at: string
           current_value: number
           expected_return_pct: number
-          fetched_return_pct: number | null
           household_id: string
           id: string
           monthly_contribution: number
@@ -508,7 +507,6 @@ export type Database = {
           payout_years: number | null
           person_id: string
           provider: string | null
-          return_basis: string
           scheme_type: string
           updated_at: string
         }
@@ -516,7 +514,6 @@ export type Database = {
           created_at?: string
           current_value?: number
           expected_return_pct?: number
-          fetched_return_pct?: number | null
           household_id: string
           id?: string
           monthly_contribution?: number
@@ -526,7 +523,6 @@ export type Database = {
           payout_years?: number | null
           person_id: string
           provider?: string | null
-          return_basis?: string
           scheme_type?: string
           updated_at?: string
         }
@@ -534,7 +530,6 @@ export type Database = {
           created_at?: string
           current_value?: number
           expected_return_pct?: number
-          fetched_return_pct?: number | null
           household_id?: string
           id?: string
           monthly_contribution?: number
@@ -544,7 +539,6 @@ export type Database = {
           payout_years?: number | null
           person_id?: string
           provider?: string | null
-          return_basis?: string
           scheme_type?: string
           updated_at?: string
         }
@@ -673,7 +667,6 @@ export type PlanningSettings = Tables<"planning_settings">
 export type PensionMeasurement = Tables<"pension_measurements">
 
 export type SchemeType = "arbejdsmarkedspension" | "ratepension" | "livrente" | "aldersopsparing" | "andet"
-export type ReturnBasis = "historical" | "ytd" | "blend"
 export type AccountKind = "frie_midler" | "aktiesparekonto" | "pensionsdepot"
 export type InstrumentType =
   | "aktie"
