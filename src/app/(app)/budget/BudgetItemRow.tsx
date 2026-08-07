@@ -15,6 +15,12 @@ export function BudgetItemRow({ item, persons }: { item: BudgetItem; persons: Pe
   const [state, formAction, pending] = useActionState(updateBudgetItemAction, initialState);
   const monthly = toMonthly(Number(item.amount), item.frequency) * (item.direction === "ud" ? -1 : 1);
 
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (!state.error) setOpen(false);
+  }
+
   return (
     <div style={{ borderBottom: "1px solid var(--line)", padding: "8px 0" }}>
       <div className="flex items-center gap-2">

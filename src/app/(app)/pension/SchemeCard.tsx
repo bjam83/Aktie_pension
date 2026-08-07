@@ -18,6 +18,12 @@ export function SchemeCard({ scheme, persons, color }: { scheme: PensionScheme; 
   const [schemeType, setSchemeType] = useState(scheme.scheme_type);
   const owner = persons.find((p) => p.id === scheme.person_id)?.name;
 
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (!state.error) setOpen(false);
+  }
+
   return (
     <div className="card">
       <div className="flex items-center justify-between gap-2">

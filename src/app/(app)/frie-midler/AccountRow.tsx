@@ -14,6 +14,12 @@ export function AccountRow({ account, persons, owner }: { account: InvestmentAcc
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(updateAccountAction, initialState);
 
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (!state.error) setOpen(false);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">

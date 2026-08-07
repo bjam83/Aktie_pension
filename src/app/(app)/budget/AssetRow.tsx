@@ -15,6 +15,12 @@ export function AssetRow({ asset, persons }: { asset: Asset; persons: Person[] }
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(updateAssetAction, initialState);
 
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (!state.error) setOpen(false);
+  }
+
   return (
     <div style={{ borderBottom: "1px solid var(--line)", padding: "8px 0" }}>
       <div className="flex items-center justify-between gap-2">

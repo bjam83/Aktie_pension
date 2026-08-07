@@ -14,6 +14,15 @@ export function MeasurementRow({ measurement }: { measurement: PensionMeasuremen
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(updateMeasurementAction, initialState);
 
+  // useActionState returns a fresh object on every submit — once it's no longer the reference we
+  // last saw and carries no error, the save succeeded, so fold the row back to its summary view.
+  // (Adjusted during render rather than in an effect, per React's guidance for this exact case.)
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (!state.error) setOpen(false);
+  }
+
   if (open) {
     return (
       <tr>

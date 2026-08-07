@@ -12,6 +12,12 @@ export function PersonCard({ person, canRemove }: { person: Person; canRemove: b
   const [state, formAction, pending] = useActionState(updatePersonAction, initialState);
   const age = ageFromBirthDate(person.birth_date, NaN);
 
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (!state.error) setOpen(false);
+  }
+
   return (
     <div className="card">
       <div className="flex items-center justify-between gap-2">
