@@ -34,8 +34,6 @@ export default async function BudgetPage() {
   const totalMonthlyIncome = monthlyIncomeFromStreams + monthlyIncomeFromBudget;
   const surplus = totalMonthlyIncome - monthlyExpenses;
 
-  const groups = [...new Set(budgetItems.map((b) => b.group_name))];
-
   // ── Net worth today ──────────────────────────────────────────────────
   const pensionNow = schemes.reduce((s, sc) => s + Number(sc.current_value), 0);
   const accountSims = accounts.map((acc) =>
@@ -168,19 +166,11 @@ export default async function BudgetPage() {
           <h3 style={{ margin: 0 }}>Månedligt udgiftsbudget</h3>
           <span className="num text-[13px] font-semibold">{fmtKr(monthlyExpenses)}/md.</span>
         </div>
-        {groups.map((g) => {
-          const items = budgetItems.filter((b) => b.group_name === g);
-          return (
-            <div key={g} className="mt-3">
-              <div className="text-[12px] font-semibold mb-1" style={{ fontFamily: "var(--font-display)" }}>
-                {g}
-              </div>
-              {items.map((item) => (
-                <BudgetItemRow key={item.id} item={item} persons={persons} />
-              ))}
-            </div>
-          );
-        })}
+        <div className="mt-3">
+          {budgetItems.map((item) => (
+            <BudgetItemRow key={item.id} item={item} persons={persons} />
+          ))}
+        </div>
         <AddBudgetItemForm />
       </div>
 

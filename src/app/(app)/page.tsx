@@ -90,7 +90,12 @@ export default async function DashboardPage() {
   return (
     <div className="grid gap-[18px]">
       <div className="grid stats-grid" style={{ gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
-        <Stat label="Nettoformue i dag" value={fmtKr(netWorthNow)} color="var(--grow)" />
+        <Stat
+          label="Nettoformue i dag"
+          value={fmtKr(netWorthNow)}
+          hint={netWorthSeries.length ? `${fmtKr(netWorthSeries[netWorthSeries.length - 1].netWorth)} ved pension` : undefined}
+          color="var(--grow)"
+        />
         <Stat label="Pension i alt" value={fmtKr(pensionNow)} hint={proj ? `${fmtKr(proj.totals.finalNominal)} ved pension` : undefined} />
         <Stat label="Frie midler" value={fmtKr(frieMidlerNow)} color="var(--grow)" />
         <Stat label="Månedligt rådighedsbeløb" value={fmtKr(surplus)} color={surplus >= 0 ? "var(--grow)" : "var(--real)"} />

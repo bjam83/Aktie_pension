@@ -80,7 +80,7 @@ export async function getIncomeStreams(): Promise<IncomeStream[]> {
 
 export async function getBudgetItems(): Promise<BudgetItem[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("budget_items").select("*").order("group_name").order("name");
+  const { data } = await supabase.from("budget_items").select("*").order("name");
   return data ?? [];
 }
 

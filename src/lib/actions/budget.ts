@@ -25,7 +25,7 @@ export async function addBudgetItemAction(_prev: FormState, formData: FormData):
 
   const { error } = await supabase.from("budget_items").insert({
     household_id: user.id,
-    group_name: String(formData.get("group_name") || "Andet").trim() || "Andet",
+    group_name: "Andet",
     name,
     direction: String(formData.get("direction") || "ud"),
     amount: num(formData, "amount"),
@@ -47,7 +47,6 @@ export async function updateBudgetItemAction(_prev: FormState, formData: FormDat
   const { error } = await supabase
     .from("budget_items")
     .update({
-      group_name: String(formData.get("group_name") || "Andet").trim() || "Andet",
       name,
       direction: String(formData.get("direction") || "ud"),
       amount: num(formData, "amount"),

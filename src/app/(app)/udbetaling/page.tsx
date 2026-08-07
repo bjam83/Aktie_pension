@@ -127,18 +127,21 @@ export default async function UdbetalingPage() {
 
             <div className="card">
               <PayoutPersonForm personId={p.id} cfg={cfg} />
-              <p className="note mt-2">
-                Ratepension bruger sin egen udbetalingslængde (sæt under fanen Pension). Livrente er livsvarig og beregnes som opsparing ÷
-                forventet restlevetid ved udbetalingsstart (unisex, fremadrettede levetidsforudsætninger, samme princip som
-                pensionsselskaberne bruger), justeret for afkast
-                {livrenteStream ? ` — ca. ${fmtYears(livrenteStream.years)} år, svarende til en forventet levealder på ${(p.retirement_age + livrenteStream.years).toFixed(1)} år` : ""}.
-                I virkeligheden stopper en livrente ikke selvom man lever længere end det — det udjævnes på tværs af alle forsikrede — men
-                her bruges restlevetiden som en realistisk tilnærmelse til den forventede udbetaling.
-                {isPrimary && frieMidlerPot > 0
-                  ? " Frie midler er fælles for husstanden og er lagt ind her, udbetalt over samme antal år. De er ikke skattefri: afkastdelen af hver udbetaling beskattes løbende som aktieindkomst eller med ASK-satsen (der betales ikke PAL-skat, da det ligger uden for pensionsramme) — kun den del der stammer fra indbetalt kapital er skattefri at få udbetalt."
-                  : ""}{" "}
-                Feltet &quot;Udbetalingsår&quot; herover gælder aldersopsparing, frie midler, arbejdsmarkedspension og andre ordninger.
-              </p>
+              <details className="note mt-2">
+                <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--ink)" }}>Sådan beregnes udbetalingen</summary>
+                <p style={{ margin: "8px 0 0" }}>
+                  Ratepension bruger sin egen udbetalingslængde (sæt under fanen Pension). Livrente er livsvarig og beregnes som opsparing ÷
+                  forventet restlevetid ved udbetalingsstart (unisex, fremadrettede levetidsforudsætninger, samme princip som
+                  pensionsselskaberne bruger), justeret for afkast
+                  {livrenteStream ? ` — ca. ${fmtYears(livrenteStream.years)} år, svarende til en forventet levealder på ${(p.retirement_age + livrenteStream.years).toFixed(1)} år` : ""}.
+                  I virkeligheden stopper en livrente ikke selvom man lever længere end det — det udjævnes på tværs af alle forsikrede — men
+                  her bruges restlevetiden som en realistisk tilnærmelse til den forventede udbetaling.
+                  {isPrimary && frieMidlerPot > 0
+                    ? " Frie midler er fælles for husstanden og er lagt ind her, udbetalt over samme antal år. De er ikke skattefri: afkastdelen af hver udbetaling beskattes løbende som aktieindkomst eller med ASK-satsen (der betales ikke PAL-skat, da det ligger uden for pensionsramme) — kun den del der stammer fra indbetalt kapital er skattefri at få udbetalt."
+                    : ""}{" "}
+                  Feltet &quot;Udbetalingsår&quot; herover gælder aldersopsparing, frie midler, arbejdsmarkedspension og andre ordninger.
+                </p>
+              </details>
             </div>
 
             {!payout ? (

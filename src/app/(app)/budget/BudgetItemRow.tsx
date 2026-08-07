@@ -37,7 +37,6 @@ export function BudgetItemRow({ item, persons }: { item: BudgetItem; persons: Pe
         <form action={formAction} className="grid gap-3 cols-2 mt-3">
           <input type="hidden" name="id" value={item.id} />
           <TextField label="Navn" name="name" defaultValue={item.name} required />
-          <TextField label="Gruppe" name="group_name" defaultValue={item.group_name} />
           <SelectField label="Retning" name="direction" defaultValue={item.direction} options={BUDGET_DIRECTION_OPTIONS} />
           <SelectField label="Hyppighed" name="frequency" defaultValue={item.frequency} options={BUDGET_FREQUENCY_OPTIONS} />
           <MoneyField label="Beløb" name="amount" defaultValue={item.amount} />
