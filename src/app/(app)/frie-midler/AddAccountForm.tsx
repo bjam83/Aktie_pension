@@ -13,9 +13,11 @@ export function AddAccountForm({ persons }: { persons: Person[] }) {
   const [state, formAction, pending] = useActionState(addAccountAction, initialState);
 
   return (
-    <div className="card">
-      <h3>Tilføj konto</h3>
-      <p className="cap">Opret så mange konti I har brug for — fx én aktiesparekonto (flad ASK-skat) og én klassisk beskattet depot (aktieindkomstskat).</p>
+    <details className="card">
+      <summary style={{ cursor: "pointer" }}>
+        <h3 style={{ display: "inline" }}>+ Tilføj konto</h3>
+      </summary>
+      <p className="cap mt-2">Opret så mange konti I har brug for — fx én aktiesparekonto (flad ASK-skat) og én klassisk beskattet depot (aktieindkomstskat).</p>
       <form action={formAction} className="grid gap-3 cols-2">
         <TextField label="Navn" name="name" placeholder="Fx “Aktiesparekonto – Nordnet”" required />
         <SelectField label="Beskatningsform" name="kind" defaultValue="frie_midler" options={ACCOUNT_KIND_OPTIONS} />
@@ -52,6 +54,6 @@ export function AddAccountForm({ persons }: { persons: Person[] }) {
           {state.error}
         </p>
       )}
-    </div>
+    </details>
   );
 }

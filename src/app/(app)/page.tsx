@@ -13,7 +13,7 @@ import { ageFromBirthDate, projectHousehold, schemeReturnPct, type SchemeCalcInp
 import { simulateFreeFunds, combineFreeFunds } from "@/lib/finance/freeFunds";
 import { projectNetWorth, type AssetGrowthInput } from "@/lib/finance/netWorth";
 import { fmtKr } from "@/lib/finance/format";
-import { toMonthly, personColor } from "@/lib/constants";
+import { toMonthly } from "@/lib/constants";
 import { Stat } from "@/components/ui/Stat";
 import { LineAreaChart } from "@/components/charts/LineAreaChart";
 import type { AssetKind } from "@/lib/types";
@@ -117,28 +117,6 @@ export default async function DashboardPage() {
       ) : (
         <div className="note">Tilføj pension, frie midler eller aktiver for at se den samlede formue som graf over tid.</div>
       )}
-
-      <div className="grid cols-2 gap-[16px]">
-        {persons.map((p, i) => {
-          const personPension = schemes.filter((s) => s.person_id === p.id).reduce((s, sc) => s + Number(sc.current_value), 0);
-          return (
-            <div key={p.id} className="card">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="dot" style={{ background: personColor(i) }} />
-                <h3 style={{ margin: 0 }}>{p.name}</h3>
-              </div>
-              <div className="flex justify-between text-[13px] mb-1">
-                <span style={{ color: "var(--muted)" }}>Pension</span>
-                <span className="num">{fmtKr(personPension)}</span>
-              </div>
-              <div className="flex justify-between text-[13px] mb-1">
-                <span style={{ color: "var(--muted)" }}>Pensionsalder</span>
-                <span className="num">{p.retirement_age} år</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
       <div className="grid cols-3 gap-3">
         <Link href="/pension" className="btn ghost" style={{ justifyContent: "center" }}>

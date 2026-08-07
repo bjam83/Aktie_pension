@@ -14,9 +14,11 @@ export function AddSchemeForm({ persons }: { persons: Person[] }) {
   const [schemeType, setSchemeType] = useState("ratepension");
 
   return (
-    <div className="card">
-      <h3>Tilføj pensionsordning</h3>
-      <p className="cap">Knyt ordningen til en person i husstanden.</p>
+    <details className="card">
+      <summary style={{ cursor: "pointer" }}>
+        <h3 style={{ display: "inline" }}>+ Tilføj pensionsordning</h3>
+      </summary>
+      <p className="cap mt-2">Knyt ordningen til en person i husstanden.</p>
       <form action={formAction} className="grid gap-3 cols-2">
         <TextField label="Navn" name="name" placeholder="Fx “Arbejdsmarkedspension”" required />
         <div className="field">
@@ -64,6 +66,6 @@ export function AddSchemeForm({ persons }: { persons: Person[] }) {
           {state.error}
         </p>
       )}
-    </div>
+    </details>
   );
 }

@@ -9,9 +9,11 @@ export function AddPersonForm() {
   const [state, formAction, pending] = useActionState(addPersonAction, initialState);
 
   return (
-    <div className="card">
-      <h3>Tilføj person #2</h3>
-      <p className="cap">Default er kun én person i husstanden. Tilføj en mere for at fordele pension, konti og aktiver mellem jer.</p>
+    <details className="card">
+      <summary style={{ cursor: "pointer" }}>
+        <h3 style={{ display: "inline" }}>+ Tilføj person #2</h3>
+      </summary>
+      <p className="cap mt-2">Default er kun én person i husstanden. Tilføj en mere for at fordele pension, konti og aktiver mellem jer.</p>
       <form action={formAction} className="flex items-end gap-2">
         <div className="field flex-1" style={{ marginBottom: 0 }}>
           <label htmlFor="add-person-name">Navn</label>
@@ -26,6 +28,6 @@ export function AddPersonForm() {
           {state.error}
         </p>
       )}
-    </div>
+    </details>
   );
 }
