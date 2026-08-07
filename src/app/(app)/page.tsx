@@ -9,19 +9,20 @@ import {
   getAssets,
   getLiabilities,
 } from "@/lib/data";
-import { ageFromBirthDate, projectHousehold, schemeReturnPct, type SchemeCalcInput } from "@/lib/finance/pension";
+import { ageFromBirthDate, projectHousehold, schemeReturnPct, estimateFolkepension, type SchemeCalcInput } from "@/lib/finance/pension";
 import { simulateFreeFunds, combineFreeFunds } from "@/lib/finance/freeFunds";
 import { projectNetWorth, type AssetGrowthInput } from "@/lib/finance/netWorth";
+import { buildPersonPayout, DEFAULT_PAYOUT } from "@/lib/finance/payoutBuilder";
 import { fmtKr } from "@/lib/finance/format";
 import { toMonthly } from "@/lib/constants";
 import { Stat } from "@/components/ui/Stat";
 import { LineAreaChart } from "@/components/charts/LineAreaChart";
-import type { AssetKind } from "@/lib/types";
+import type { AssetKind, PayoutConfig } from "@/lib/types";
 
 export default async function DashboardPage() {
   const bundle = await getHouseholdBundle();
   if (!bundle) redirect("/login");
-  const { persons, assumptions } = bundle;
+  const { persons, assumptions, planningSettings } = bundle;
 
   const [schemes, accounts, budgetItems, incomeStreams, assets, liabilities] = await Promise.all([
     getPensionSchemes(),
@@ -75,6 +76,19 @@ export default async function DashboardPage() {
   const monthlyExpenses = budgetItems.filter((b) => b.direction === "ud").reduce((s, b) => s + toMonthly(Number(b.amount), b.frequency), 0);
   const surplus = monthlyIncome - monthlyExpenses;
 
+  // ── Forventet rådighedsbeløb ved pension: folkepension + pensionsudbetalinger (netto) for hele
+  // husstanden, minus dagens udgifter (antaget uændrede) — samme udbetalingsberegning som på Udbetaling.
+  const primaryPerson = persons.find((p) => p.is_primary) ?? persons[0];
+  const payoutByPerson = (planningSettings.payout as unknown as Record<string, PayoutConfig>) || {};
+  const retirementMonthlyIncome = persons.reduce((sum, p) => {
+    const personSchemes = schemes.filter((s) => s.person_id === p.id);
+    const cfg = payoutByPerson[p.id] ?? DEFAULT_PAYOUT;
+    const isPrimary = p.id === primaryPerson?.id;
+    const { payout } = buildPersonPayout(p, personSchemes, accounts, isPrimary, cfg, assumptions);
+    return sum + (payout?.netMonthly ?? 0) + estimateFolkepension(p.retirement_age).net;
+  }, 0);
+  const disposableAtRetirement = retirementMonthlyIncome - monthlyExpenses;
+
   // ── Samlet formue over tid ─────────────────────────────────────────────
   const horizonYears = Math.max(proj?.horizonYears || 0, frieMidlerSim.years || 0);
   const assetGrowthInputs: AssetGrowthInput[] = assets.map((a) => ({
@@ -97,8 +111,18 @@ export default async function DashboardPage() {
           color="var(--grow)"
         />
         <Stat label="Pension i alt" value={fmtKr(pensionNow)} hint={proj ? `${fmtKr(proj.totals.finalNominal)} ved pension` : undefined} />
-        <Stat label="Frie midler" value={fmtKr(frieMidlerNow)} color="var(--grow)" />
-        <Stat label="Månedligt rådighedsbeløb" value={fmtKr(surplus)} color={surplus >= 0 ? "var(--grow)" : "var(--real)"} />
+        <Stat
+          label="Frie midler"
+          value={fmtKr(frieMidlerNow)}
+          hint={accounts.length > 0 ? `${fmtKr(frieMidlerSim.finalNominal)} ved pension` : undefined}
+          color="var(--grow)"
+        />
+        <Stat
+          label="Månedligt rådighedsbeløb"
+          value={fmtKr(surplus)}
+          hint={`${fmtKr(disposableAtRetirement)} ved pension`}
+          color={surplus >= 0 ? "var(--grow)" : "var(--real)"}
+        />
       </div>
 
       {netWorthSeries.length >= 2 ? (

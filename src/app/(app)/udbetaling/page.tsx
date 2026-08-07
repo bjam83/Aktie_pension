@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
 import { getHouseholdBundle, getPensionSchemes, getInvestmentAccounts, getIncomeStreams } from "@/lib/data";
-import { ageFromBirthDate, projectScheme, schemeReturnPct, estimateFolkepension } from "@/lib/finance/pension";
-import { simulateMultiPayout, type PayoutStreamInput } from "@/lib/finance/payout";
-import { simulateFreeFunds } from "@/lib/finance/freeFunds";
-import { remainingLifeExpectancy } from "@/lib/finance/lifeExpectancy";
+import { schemeReturnPct, estimateFolkepension } from "@/lib/finance/pension";
+import { buildPersonPayout, DEFAULT_PAYOUT } from "@/lib/finance/payoutBuilder";
 import { fmtKr, fmtPct } from "@/lib/finance/format";
 import { personColor, personColorSoft, toMonthly } from "@/lib/constants";
 import { Stat } from "@/components/ui/Stat";
@@ -11,17 +9,6 @@ import { LineAreaChart } from "@/components/charts/LineAreaChart";
 import type { PayoutConfig } from "@/lib/types";
 import { PayoutPersonForm } from "./PayoutPersonForm";
 import { ReverseRetirementCalculator } from "./ReverseRetirementCalculator";
-
-const DEFAULT_PAYOUT: PayoutConfig = { years: 15, ret: 3, otherIncome: 0 };
-
-/** Udbetalingslængde pr. ordningstype: ratepension har sin egen (10-25 år), livrente er livsvarig
- *  og bruger forventet restlevetid ved udbetalingsstart (se lifeExpectancy.ts), resten falder
- *  tilbage til personens generelle valg. */
-function streamYears(schemeType: string, payoutYears: number | null, retirementAge: number, fallbackYears: number): number {
-  if (schemeType === "ratepension") return Math.min(25, Math.max(10, payoutYears ?? 15));
-  if (schemeType === "livrente") return remainingLifeExpectancy(retirementAge);
-  return fallbackYears;
-}
 
 /** Undgår grimme "15.0 år" for hele tal, men viser decimal for fx livrentens restlevetid. */
 function fmtYears(years: number): string {
@@ -42,70 +29,10 @@ export default async function UdbetalingPage() {
     <div className="grid gap-[18px]">
       {persons.map((p, i) => {
         const personSchemes = schemes.filter((s) => s.person_id === p.id);
-        const ageNow = ageFromBirthDate(p.birth_date, 40);
         const cfg = payoutByPerson[p.id] ?? DEFAULT_PAYOUT;
         const isPrimary = p.id === primary?.id;
 
-        const streams: PayoutStreamInput[] = personSchemes.map((s) => {
-          const proj = projectScheme(
-            { id: s.id, personId: p.id, name: s.name, currentValue: Number(s.current_value), monthlyContribution: Number(s.monthly_contribution), returnPct: schemeReturnPct(s), ageNow, ageRetire: p.retirement_age },
-            assumptions.pal_rate,
-            assumptions.inflation_rate
-          );
-          return {
-            key: s.id,
-            label: s.name,
-            pot: proj.finalNominal,
-            years: streamYears(s.scheme_type, s.payout_years, p.retirement_age, cfg.years),
-            taxMode: s.scheme_type === "aldersopsparing" ? "free" : "income",
-          };
-        });
-
-        // Frie midler ligger uden for pensionsramme: ingen PAL, men afkastdelen af hver udbetaling
-        // beskattes løbende som aktieindkomst (depot) eller med ASK-satsen — det er ikke skattefrit
-        // bare fordi kontoen er fremskrevet frem til pensionsalderen. Grupperes pr. beskatningsform,
-        // da de to har forskellige satser.
-        let frieMidlerPot = 0;
-        if (isPrimary && accounts.length > 0) {
-          const yearsToRetirement = Math.max(0, p.retirement_age - ageNow);
-          const groups: Record<"depot" | "ask", { pot: number; contributed: number }> = {
-            depot: { pot: 0, contributed: 0 },
-            ask: { pot: 0, contributed: 0 },
-          };
-          accounts.forEach((acc) => {
-            const kind: "depot" | "ask" = acc.kind === "aktiesparekonto" ? "ask" : "depot";
-            const sim = simulateFreeFunds(
-              {
-                lump: Number(acc.current_value),
-                monthly: Number(acc.monthly_contribution),
-                ret: Number(acc.expected_return_pct),
-                years: yearsToRetirement,
-                tax: kind,
-              },
-              assumptions,
-              assumptions.inflation_rate
-            );
-            groups[kind].pot += sim.finalNominal;
-            groups[kind].contributed += sim.contributed;
-          });
-          frieMidlerPot = groups.depot.pot + groups.ask.pot;
-
-          (["depot", "ask"] as const).forEach((kind) => {
-            const g = groups[kind];
-            if (g.pot <= 0) return;
-            const gainSharePct = Math.max(0, Math.min(1, (g.pot - g.contributed) / g.pot));
-            streams.push({
-              key: `frie-midler-${kind}`,
-              label: kind === "ask" ? "Frie midler (aktiesparekonto)" : "Frie midler (depot)",
-              pot: g.pot,
-              years: cfg.years,
-              taxMode: kind === "ask" ? "gains-ask" : "gains-depot",
-              gainSharePct,
-            });
-          });
-        }
-
-        const payout = streams.length ? simulateMultiPayout(streams, cfg.ret, cfg.otherIncome, assumptions.pal_rate, p.retirement_age, assumptions) : null;
+        const { ageNow, streams, frieMidlerPot, payout } = buildPersonPayout(p, personSchemes, accounts, isPrimary, cfg, assumptions);
         const fp = estimateFolkepension(p.retirement_age);
         const livrenteStream = streams.find((s) => personSchemes.find((sc) => sc.id === s.key)?.scheme_type === "livrente");
 
