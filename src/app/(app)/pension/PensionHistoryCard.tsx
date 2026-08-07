@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
-import { addMeasurementAction, removeMeasurementAction, type FormState } from "@/lib/actions/pensionMeasurements";
+import { addMeasurementAction, type FormState } from "@/lib/actions/pensionMeasurements";
 import { MoneyField } from "@/components/ui/MoneyField";
 import { historicalAverageReturn } from "@/lib/finance/pension";
 import { fmtKr, fmtPct, fmtDate } from "@/lib/finance/format";
 import { LineAreaChart } from "@/components/charts/LineAreaChart";
 import { Stat } from "@/components/ui/Stat";
+import { MeasurementRow } from "./MeasurementRow";
 import type { PensionMeasurement } from "@/lib/types";
 
 const initialState: FormState = {};
@@ -74,25 +75,7 @@ export function PensionHistoryCard({ personId, personName, measurements, color }
             </thead>
             <tbody>
               {[...sorted].reverse().map((m) => (
-                <tr key={m.id}>
-                  <td>{fmtDate(m.measured_on)}</td>
-                  <td className="num">{fmtKr(m.total_value)}</td>
-                  <td className="num">{m.return_pct == null ? "–" : fmtPct(m.return_pct)}</td>
-                  <td style={{ textAlign: "right" }}>
-                    <form action={removeMeasurementAction} style={{ display: "inline" }}>
-                      <input type="hidden" name="id" value={m.id} />
-                      <button
-                        className="btn ghost danger tiny"
-                        type="submit"
-                        onClick={(e) => {
-                          if (!confirm(`Slet målingen fra ${fmtDate(m.measured_on)}?`)) e.preventDefault();
-                        }}
-                      >
-                        Slet
-                      </button>
-                    </form>
-                  </td>
-                </tr>
+                <MeasurementRow key={m.id} measurement={m} />
               ))}
             </tbody>
           </table>

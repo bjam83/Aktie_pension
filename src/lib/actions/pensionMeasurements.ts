@@ -41,6 +41,31 @@ export async function addMeasurementAction(_prev: FormState, formData: FormData)
   return {};
 }
 
+export async function updateMeasurementAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const supabase = await createClient();
+  const id = String(formData.get("id") || "");
+  const measured_on = String(formData.get("measured_on") || "");
+  if (!id || !measured_on) return { error: "Vælg en dato." };
+
+  const returnRaw = formData.get("return_pct");
+  const return_pct = returnRaw === "" || returnRaw == null ? null : Number(returnRaw);
+
+  const { error } = await supabase
+    .from("pension_measurements")
+    .update({
+      measured_on,
+      total_value: num(formData, "total_value"),
+      return_pct,
+    })
+    .eq("id", id);
+  if (error) {
+    return { error: error.code === "23505" ? "Der findes allerede en måling for denne person på den dato." : error.message };
+  }
+
+  revalidatePath("/pension");
+  return {};
+}
+
 export async function removeMeasurementAction(formData: FormData) {
   const supabase = await createClient();
   const id = String(formData.get("id") || "");
