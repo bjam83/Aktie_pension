@@ -60,8 +60,14 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props)
   const yS = (v: number) => PAD.t + ch * (1 - Math.max(0, v) / yMax);
   const yBot = PAD.t + ch;
 
-  const mag = Math.pow(10, Math.floor(Math.log10(yMax || 1)));
-  const nice = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((m) => yMax / m >= 3 && yMax / m <= 7) || mag * 5;
+  // "Nice numbers" tick step (Heckbert's method) — picks a round step near yMax/5 regardless of
+  // magnitude, so narrow-range data (e.g. a few years of pension measurements clustered around
+  // 1-2 mio.) gets several readable ticks instead of just "0" falling out of the old fixed-ratio search.
+  const rawStep = (yMax || 1) / 5;
+  const stepMag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const stepNorm = rawStep / stepMag;
+  const niceNorm = stepNorm <= 1 ? 1 : stepNorm <= 2 ? 2 : stepNorm <= 2.5 ? 2.5 : stepNorm <= 5 ? 5 : 10;
+  const nice = niceNorm * stepMag;
   const yTicks: number[] = [];
   for (let v = 0; v <= yMax + nice * 0.5; v += nice) yTicks.push(v);
 

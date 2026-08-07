@@ -10,6 +10,7 @@ import type {
   Liability,
   IncomeStream,
   BudgetItem,
+  PensionMeasurement,
 } from "@/lib/types";
 
 export async function getUser() {
@@ -80,5 +81,11 @@ export async function getIncomeStreams(): Promise<IncomeStream[]> {
 export async function getBudgetItems(): Promise<BudgetItem[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("budget_items").select("*").order("group_name").order("name");
+  return data ?? [];
+}
+
+export async function getPensionMeasurements(): Promise<PensionMeasurement[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("pension_measurements").select("*").order("measured_on");
   return data ?? [];
 }

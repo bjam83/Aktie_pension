@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getHouseholdBundle, getPensionSchemes } from "@/lib/data";
+import { getHouseholdBundle, getPensionSchemes, getPensionMeasurements } from "@/lib/data";
 import { ageFromBirthDate, projectHousehold, schemeReturnPct, type SchemeCalcInput } from "@/lib/finance/pension";
 import { fmtKr } from "@/lib/finance/format";
 import { personColor, personColorSoft } from "@/lib/constants";
@@ -9,12 +9,13 @@ import { DonutChart } from "@/components/charts/DonutChart";
 import { SchemeCard } from "./SchemeCard";
 import { AddSchemeForm } from "./AddSchemeForm";
 import { PersonPensionHeader } from "./PersonPensionHeader";
+import { PensionHistoryCard } from "./PensionHistoryCard";
 
 export default async function PensionPage() {
   const bundle = await getHouseholdBundle();
   if (!bundle) redirect("/login");
   const { persons, assumptions } = bundle;
-  const schemes = await getPensionSchemes();
+  const [schemes, measurements] = await Promise.all([getPensionSchemes(), getPensionMeasurements()]);
 
   const calcInputs: SchemeCalcInput[] = schemes.map((s) => {
     const person = persons.find((p) => p.id === s.person_id);
@@ -99,6 +100,12 @@ export default async function PensionPage() {
                 <SchemeCard key={s.id} scheme={s} persons={persons} color={personColor(i)} />
               ))}
             </div>
+            <PensionHistoryCard
+              personId={p.id}
+              personName={p.name}
+              measurements={measurements.filter((m) => m.person_id === p.id)}
+              color={personColor(i)}
+            />
           </div>
         );
       })}

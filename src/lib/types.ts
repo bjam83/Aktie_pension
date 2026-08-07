@@ -467,6 +467,8 @@ export type Database = {
           household_id: string
           id: string
           measured_on: string
+          person_id: string
+          return_pct: number | null
           total_value: number
         }
         Insert: {
@@ -474,6 +476,8 @@ export type Database = {
           household_id: string
           id?: string
           measured_on: string
+          person_id: string
+          return_pct?: number | null
           total_value: number
         }
         Update: {
@@ -481,6 +485,8 @@ export type Database = {
           household_id?: string
           id?: string
           measured_on?: string
+          person_id?: string
+          return_pct?: number | null
           total_value?: number
         }
         Relationships: [
@@ -489,6 +495,13 @@ export type Database = {
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pension_measurements_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
             referencedColumns: ["id"]
           },
         ]

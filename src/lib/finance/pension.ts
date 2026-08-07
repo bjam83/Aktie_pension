@@ -180,6 +180,25 @@ export function findRetirementAge(
   return null;
 }
 
+export interface HistoricalReturnStat {
+  avgPct: number | null;
+  count: number;
+}
+
+/**
+ * Geometrisk gennemsnit af selvindtastede afkastmålinger (fx aflæst fra pensionsselskabets egen
+ * app/opgørelse) — mere retvisende end et simpelt aritmetisk snit når afkastet svinger år for år,
+ * samme princip som CAGR. Bruges som pejlemærke for hvad man kan forvente at sætte som "forventet
+ * årligt afkast" i fremskrivningen.
+ */
+export function historicalAverageReturn(returns: (number | null | undefined)[]): HistoricalReturnStat {
+  const valid = returns.filter((r): r is number => r != null && Number.isFinite(r));
+  if (!valid.length) return { avgPct: null, count: 0 };
+  const product = valid.reduce((p, r) => p * (1 + r / 100), 1);
+  const geoMean = Math.pow(product, 1 / valid.length) - 1;
+  return { avgPct: geoMean * 100, count: valid.length };
+}
+
 /** Estimeret folkepension (grundbeløb) — 2026-niveau, ikke-indkomstprøvet grundbeløb. */
 export function estimateFolkepension(ageRetire: number, residenceYears = 40, folkepensionsalder = 67) {
   if (ageRetire < folkepensionsalder) {
