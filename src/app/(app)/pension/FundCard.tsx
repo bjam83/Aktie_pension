@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { updateFundAction, removeFundAction, addFundReturnAction, type FormState } from "@/lib/actions/pensionFunds";
+import { updateFundAction, removeFundAction, addFundReturnAction, fetchFundReturnsAction, type FormState } from "@/lib/actions/pensionFunds";
 import { TextField } from "@/components/ui/Field";
 import { PercentField } from "@/components/ui/PercentField";
 import { fmtPct } from "@/lib/finance/format";
@@ -15,6 +15,7 @@ export function FundCard({ fund, returns, color }: { fund: PensionSchemeFund; re
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(updateFundAction, initialState);
   const [addState, addFormAction, addPending] = useActionState(addFundReturnAction, initialState);
+  const [fetchState, fetchFormAction, fetchPending] = useActionState(fetchFundReturnsAction, initialState);
 
   const [seenState, setSeenState] = useState(state);
   if (state !== seenState) {
@@ -44,6 +45,14 @@ export function FundCard({ fund, returns, color }: { fund: PensionSchemeFund; re
           <input type="hidden" name="id" value={fund.id} />
           <TextField label="Navn" name="name" defaultValue={fund.name} required />
           <PercentField label="Andel af ordningen" name="allocation_pct" id={`fund-alloc-${fund.id}`} defaultValue={fund.allocation_pct} />
+          <div className="col-span-2">
+            <TextField
+              label="Link til fondens side (valgfrit)"
+              name="source_url"
+              defaultValue={fund.source_url}
+              placeholder="https://appension.fondliste.dk/..."
+            />
+          </div>
           <div className="flex items-end gap-2 col-span-2">
             <button className="btn" type="submit" disabled={pending}>
               {pending ? "Gemmer…" : "Gem"}
@@ -85,6 +94,25 @@ export function FundCard({ fund, returns, color }: { fund: PensionSchemeFund; re
           </tbody>
         </table>
       )}
+
+      <div className="mt-2">
+        {fund.source_url ? (
+          <form action={fetchFormAction} style={{ display: "inline" }}>
+            <input type="hidden" name="fund_id" value={fund.id} />
+            <button className="btn ghost tiny" type="submit" disabled={fetchPending}>
+              {fetchPending ? "Henter…" : "Hent afkast"}
+            </button>
+          </form>
+        ) : (
+          <p className="cap" style={{ margin: 0 }}>Tilføj et link til fondens side under Rediger for at hente afkast automatisk.</p>
+        )}
+        {fund.source_url && <p className="cap" style={{ margin: "4px 0 0" }}>Overskriver eksisterende tal for de år der findes på siden.</p>}
+        {fetchState.error && (
+          <p className="text-[12px] mt-2" style={{ color: "var(--danger)" }}>
+            {fetchState.error}
+          </p>
+        )}
+      </div>
 
       <details className="mt-2">
         <summary className="btn ghost tiny" style={{ display: "inline-flex", cursor: "pointer" }}>

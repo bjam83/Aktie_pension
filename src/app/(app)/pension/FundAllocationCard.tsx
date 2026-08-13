@@ -129,6 +129,13 @@ export function FundAllocationCard({
             <input type="hidden" name="scheme_id" value={scheme.id} />
             <TextField label="Navn" name="name" placeholder="Fx Globale Aktier KL" required />
             <PercentField label="Andel af ordningen" name="allocation_pct" id={`fund-newalloc-${scheme.id}`} placeholder="Fx 35" />
+            <div className="col-span-2">
+              <TextField
+                label="Link til fondens side (valgfrit)"
+                name="source_url"
+                placeholder="https://appension.fondliste.dk/..."
+              />
+            </div>
             <div className="flex items-end">
               <button className="btn" type="submit" disabled={pending}>
                 {pending ? "Tilføjer…" : "+ Tilføj fond"}
