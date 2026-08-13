@@ -37,7 +37,15 @@ function isYear(name: string | undefined): number | null {
  */
 export async function fetchAnnualReturns(sourceUrl: string): Promise<ScrapedReturn[]> {
   const match = sourceUrl.match(DETAIL_URL_RE);
-  if (!match) {
+  let origin: string;
+  let hostname: string;
+  try {
+    ({ origin, hostname } = new URL(sourceUrl));
+  } catch {
+    origin = "";
+    hostname = "";
+  }
+  if (!match || !origin) {
     throw new Error(
       "Linket ser ikke ud til at være en fondsside — det skal ligne https://appension.fondliste.dk/da/1/details/..."
     );
@@ -45,12 +53,22 @@ export async function fetchAnnualReturns(sourceUrl: string): Promise<ScrapedRetu
   const [, webid, securityId] = match;
   const apiUrl = `https://portal-be.auxality-portal.com/lookup/annual-return?webid=${encodeURIComponent(webid)}&securityId=${encodeURIComponent(securityId)}`;
 
+  // The backend is a shared, white-labelled service behind multiple pension providers'
+  // *.fondliste.dk sites — it 401s without headers that scope the request to the right tenant.
+  // These match exactly what the real site's own page sends (captured via the browser's network
+  // tab): a custom X-Domain header naming the tenant site, plus Origin/Referer matching its
+  // Referrer-Policy (strict-origin-when-cross-origin strips the path on cross-origin requests).
   let res: Response;
   try {
     res = await fetch(apiUrl, {
       headers: {
-        Accept: "application/json",
-        Referer: sourceUrl,
+        Accept: "*/*",
+        "Accept-Language": "da",
+        Origin: origin,
+        Referer: `${origin}/`,
+        "X-Domain": hostname,
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
     });
   } catch {
