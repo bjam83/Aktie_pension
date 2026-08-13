@@ -6,6 +6,7 @@ import { fetchAnnualReturns } from "@/lib/scraping/annualReturns";
 
 export interface FormState {
   error?: string;
+  message?: string;
 }
 
 function num(formData: FormData, key: string, fallback = 0): number {
@@ -124,6 +125,88 @@ export async function removeFundReturnAction(formData: FormData) {
   const id = String(formData.get("id") || "");
   await supabase.from("pension_fund_returns").delete().eq("id", id);
   revalidatePath("/pension");
+}
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Shared by the two bulk-refresh actions below: calls fetchAnnualReturns for every fund that has
+ * a source_url, sequentially (not Promise.all — avoids hammering the external API concurrently),
+ * upserting successes and counting failures per-fund rather than aborting the whole batch on one
+ * bad fund.
+ */
+async function refreshFundsReturns(
+  supabase: SupabaseServerClient,
+  userId: string,
+  funds: { id: string; source_url: string | null }[]
+): Promise<{ updated: number; skipped: number; failed: number }> {
+  const withUrl = funds.filter((f) => f.source_url);
+  let updated = 0;
+  let failed = 0;
+
+  for (const fund of withUrl) {
+    try {
+      const results = await fetchAnnualReturns(fund.source_url!);
+      const { error } = await supabase
+        .from("pension_fund_returns")
+        .upsert(
+          results.map((r) => ({ household_id: userId, fund_id: fund.id, year: r.year, return_pct: r.returnPct })),
+          { onConflict: "fund_id,year" }
+        );
+      if (error) throw new Error(error.message);
+      updated++;
+    } catch {
+      failed++;
+    }
+  }
+
+  return { updated, skipped: funds.length - withUrl.length, failed };
+}
+
+function summarizeRefresh(updated: number, skipped: number, failed: number): FormState {
+  if (updated === 0 && failed > 0) {
+    return { error: `Kunne ikke hente afkast for nogen fonde (${failed} fejlede).` };
+  }
+  const parts = [`Opdaterede ${updated} fond${updated === 1 ? "" : "e"}`];
+  if (skipped) parts.push(`${skipped} uden link`);
+  if (failed) parts.push(`${failed} fejlede`);
+  return { message: parts.join(", ") + "." };
+}
+
+/** Refreshes every fund's return history for one scheme in a single click, from the collapsed banner. */
+export async function refreshSchemeFundReturnsAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Ikke logget ind." };
+
+  const scheme_id = String(formData.get("scheme_id") || "");
+  if (!scheme_id) return { error: "Mangler ordning." };
+
+  const { data: funds } = await supabase.from("pension_scheme_funds").select("id, source_url").eq("scheme_id", scheme_id);
+  if (!funds?.length) return { error: "Ingen fonde at opdatere." };
+
+  const { updated, skipped, failed } = await refreshFundsReturns(supabase, user.id, funds);
+  revalidatePath("/pension");
+  return summarizeRefresh(updated, skipped, failed);
+}
+
+/** Refreshes every fund's return history across the whole household in a single click. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- must match the (state, formData) shape useActionState expects; no form fields needed here.
+export async function refreshAllFundReturnsAction(_prev: FormState, _formData: FormData): Promise<FormState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Ikke logget ind." };
+
+  const { data: funds } = await supabase.from("pension_scheme_funds").select("id, source_url");
+  if (!funds?.length) return { error: "Ingen fonde at opdatere." };
+
+  const { updated, skipped, failed } = await refreshFundsReturns(supabase, user.id, funds);
+  revalidatePath("/pension");
+  return summarizeRefresh(updated, skipped, failed);
 }
 
 /**

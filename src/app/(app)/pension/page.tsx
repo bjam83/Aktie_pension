@@ -11,6 +11,7 @@ import { AddSchemeForm } from "./AddSchemeForm";
 import { PersonPensionHeader } from "./PersonPensionHeader";
 import { PensionHistoryCard } from "./PensionHistoryCard";
 import { FundAllocationCard } from "./FundAllocationCard";
+import { RefreshAllFundsButton } from "./RefreshAllFundsButton";
 import type { PensionFundReturn } from "@/lib/types";
 
 export default async function PensionPage() {
@@ -107,6 +108,8 @@ export default async function PensionPage() {
           </div>
         </>
       )}
+
+      {schemeFunds.length > 0 && <RefreshAllFundsButton />}
 
       {persons.map((p, i) => {
         const list = schemesByPerson.get(p.id) ?? [];

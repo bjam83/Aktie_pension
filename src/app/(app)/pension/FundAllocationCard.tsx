@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addFundAction, type FormState } from "@/lib/actions/pensionFunds";
+import { addFundAction, refreshSchemeFundReturnsAction, type FormState } from "@/lib/actions/pensionFunds";
 import { TextField } from "@/components/ui/Field";
 import { PercentField } from "@/components/ui/PercentField";
 import { fmtPct } from "@/lib/finance/format";
@@ -33,6 +33,7 @@ export function FundAllocationCard({
   returnsByFund: Map<string, PensionFundReturn[]>;
 }) {
   const [state, formAction, pending] = useActionState(addFundAction, initialState);
+  const [refreshState, refreshFormAction, refreshPending] = useActionState(refreshSchemeFundReturnsAction, initialState);
 
   const allocations: FundAllocation[] = funds.map((f) => ({ id: f.id, name: f.name, allocationPct: Number(f.allocation_pct) }));
   const yearReturns: FundYearReturn[] = funds.flatMap((f) =>
@@ -72,8 +73,27 @@ export function FundAllocationCard({
           Fondsfordeling — {scheme.name}
         </span>{" "}
         <span className="cap">
-          {funds.length} fond{funds.length === 1 ? "" : "e"} · {fmtPct(totalAlloc, 0)} allokeret
-        </span>
+          {funds.length} fond{funds.length === 1 ? "" : "e"} · {fmtPct(totalAlloc, 0)} allokeret · År til dato:{" "}
+          {ytd == null ? "–" : fmtPct(ytd)} · Historisk: {hist.avgPct == null ? "–" : fmtPct(hist.avgPct)}
+        </span>{" "}
+        {funds.length > 0 && (
+          <form
+            action={refreshFormAction}
+            style={{ display: "inline" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input type="hidden" name="scheme_id" value={scheme.id} />
+            <button className="btn ghost tiny" type="submit" disabled={refreshPending}>
+              {refreshPending ? "Opdaterer…" : "Opdater afkast"}
+            </button>
+          </form>
+        )}{" "}
+        {refreshState.message && <span className="cap">{refreshState.message}</span>}
+        {refreshState.error && (
+          <span className="text-[12px]" style={{ color: "var(--danger)" }}>
+            {refreshState.error}
+          </span>
+        )}
       </summary>
 
       <div className="mt-3">
