@@ -461,6 +461,48 @@ export type Database = {
           },
         ]
       }
+      pension_fund_returns: {
+        Row: {
+          created_at: string
+          fund_id: string
+          household_id: string
+          id: string
+          return_pct: number
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          fund_id: string
+          household_id: string
+          id?: string
+          return_pct: number
+          year: number
+        }
+        Update: {
+          created_at?: string
+          fund_id?: string
+          household_id?: string
+          id?: string
+          return_pct?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pension_fund_returns_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "pension_scheme_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pension_fund_returns_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pension_measurements: {
         Row: {
           created_at: string
@@ -502,6 +544,51 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pension_scheme_funds: {
+        Row: {
+          allocation_pct: number
+          created_at: string
+          household_id: string
+          id: string
+          name: string
+          scheme_id: string
+          updated_at: string
+        }
+        Insert: {
+          allocation_pct?: number
+          created_at?: string
+          household_id: string
+          id?: string
+          name: string
+          scheme_id: string
+          updated_at?: string
+        }
+        Update: {
+          allocation_pct?: number
+          created_at?: string
+          household_id?: string
+          id?: string
+          name?: string
+          scheme_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pension_scheme_funds_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pension_scheme_funds_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "pension_schemes"
             referencedColumns: ["id"]
           },
         ]
@@ -678,6 +765,8 @@ export type IncomeStream = Tables<"income_streams">
 export type BudgetItem = Tables<"budget_items">
 export type PlanningSettings = Tables<"planning_settings">
 export type PensionMeasurement = Tables<"pension_measurements">
+export type PensionSchemeFund = Tables<"pension_scheme_funds">
+export type PensionFundReturn = Tables<"pension_fund_returns">
 
 export type SchemeType = "arbejdsmarkedspension" | "ratepension" | "livrente" | "aldersopsparing" | "andet"
 export type AccountKind = "frie_midler" | "aktiesparekonto" | "pensionsdepot"

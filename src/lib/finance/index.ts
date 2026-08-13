@@ -6,3 +6,4 @@ export * from "./freeFunds";
 export * from "./netWorth";
 export * from "./lifeExpectancy";
 export * from "./payoutBuilder";
+export * from "./fundReturns";

@@ -20,10 +20,11 @@ interface Props {
   xKey: string;
   height?: number;
   xFmt?: (v: number) => string;
+  valueFmt?: (v: number) => string;
 }
 
 /** Zero-dependency responsive SVG line/area chart with hover tooltip. Ported from the original app. */
-export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props) {
+export function LineAreaChart({ data, series, xKey, height = 280, xFmt, valueFmt = fmtKr }: Props) {
   const [tip, setTip] = useState<Record<string, number> | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -53,9 +54,13 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props)
       });
     });
   }
-  const getY = (d: Record<string, number>, i: number, k: string) => (stacked[k] !== undefined ? stacked[k][i] : d[k] || 0);
+  // Missing key → null (not 0) so a series can have gaps (e.g. a fund with no return recorded
+  // for a given year) — the line breaks across the gap instead of diving to 0. Stacked areas are
+  // unaffected: their values are always computed, never absent.
+  const getY = (d: Record<string, number>, i: number, k: string): number | null =>
+    stacked[k] !== undefined ? stacked[k][i] : d[k] ?? null;
 
-  const allY = data.flatMap((d, i) => series.map((s) => getY(d, i, s.key)));
+  const allY = data.flatMap((d, i) => series.map((s) => getY(d, i, s.key))).filter((v): v is number => v != null);
   const yMax = Math.max(...allY, 1) * 1.05;
   const yS = (v: number) => PAD.t + ch * (1 - Math.max(0, v) / yMax);
   const yBot = PAD.t + ch;
@@ -78,8 +83,8 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props)
   series
     .filter((s) => s.fill)
     .forEach((s) => {
-      const pts = data.map((d, i) => [xS(d[xKey]), yS(getY(d, i, s.key))] as const);
-      const bY = s.baseKey ? data.map((d, i) => yS(getY(d, i, s.baseKey!))) : null;
+      const pts = data.map((d, i) => [xS(d[xKey]), yS(getY(d, i, s.key) ?? 0)] as const);
+      const bY = s.baseKey ? data.map((d, i) => yS(getY(d, i, s.baseKey!) ?? 0)) : null;
       const path = bY
         ? pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ") +
           " " +
@@ -94,21 +99,39 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props)
     });
 
   const lineEls = series.flatMap((s) => {
-    const pts = data.map((d, i) => [xS(d[xKey]), yS(getY(d, i, s.key))] as const);
-    const path = pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
-    const last = pts[pts.length - 1];
-    return [
+    // Split into runs of consecutive non-null points so a gap in the data (e.g. a fund with no
+    // return recorded for a year) breaks the line instead of drawing straight through as 0.
+    const runs: (readonly [number, number])[][] = [];
+    let current: (readonly [number, number])[] = [];
+    data.forEach((d, i) => {
+      const y = getY(d, i, s.key);
+      if (y == null) {
+        if (current.length) runs.push(current);
+        current = [];
+      } else {
+        current.push([xS(d[xKey]), yS(y)]);
+      }
+    });
+    if (current.length) runs.push(current);
+
+    const paths = runs.map((run, ri) => (
       <path
-        key={"l" + s.key}
-        d={path}
+        key={"l" + s.key + ri}
+        d={run.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ")}
         fill="none"
         stroke={s.stroke}
         strokeWidth={s.width ?? 2}
         strokeDasharray={s.dashed ? "5 4" : undefined}
         strokeLinecap="round"
         strokeLinejoin="round"
-      />,
-      !s.dashed && (
+      />
+    ));
+
+    const lastRun = runs[runs.length - 1];
+    const last = lastRun?.[lastRun.length - 1];
+    return [
+      ...paths,
+      !s.dashed && last && (
         <circle key={"end" + s.key} cx={last[0]} cy={last[1]} r={3.5} fill={s.stroke} stroke="var(--surface)" strokeWidth={1.5} />
       ),
     ];
@@ -121,11 +144,11 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props)
     tipEls.push(<line key="tl" x1={tx} y1={PAD.t} x2={tx} y2={yBot} stroke="var(--muted)" strokeWidth={1} strokeDasharray="3 3" />);
     series
       .filter((s) => !s.dashed)
-      .forEach((s) =>
-        tipEls.push(
-          <circle key={"tc" + s.key} cx={tx} cy={yS(getY(tip, tipIdx, s.key))} r={4} fill={s.stroke} stroke="#fff" strokeWidth={2} />
-        )
-      );
+      .forEach((s) => {
+        const y = getY(tip, tipIdx, s.key);
+        if (y == null) return;
+        tipEls.push(<circle key={"tc" + s.key} cx={tx} cy={yS(y)} r={4} fill={s.stroke} stroke="#fff" strokeWidth={2} />);
+      });
   }
 
   const onMove = (clientX: number) => {
@@ -200,7 +223,7 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt }: Props)
                 style={{ display: "flex", justifyContent: "space-between", gap: 18, fontFamily: "var(--font-display)", fontSize: "var(--fs-sm)" }}
               >
                 <span style={{ color: s.stroke }}>{s.name || s.key}</span>
-                <span className="num">{fmtKr(tip[s.key] || 0)}</span>
+                <span className="num">{tip[s.key] != null ? valueFmt(tip[s.key]) : "–"}</span>
               </div>
             ))}
         </div>

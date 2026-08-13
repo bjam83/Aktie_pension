@@ -70,6 +70,11 @@ export function personColorSoft(index: number): string {
   return PERSON_PALETTE_SOFT[index % PERSON_PALETTE_SOFT.length];
 }
 
+/** Same palette as personColor, aliased for readability at fund-chart call sites. */
+export function fundColor(index: number): string {
+  return personColor(index);
+}
+
 export function labelFor(options: { value: string; label: string }[], value: string): string {
   return options.find((o) => o.value === value)?.label ?? value;
 }

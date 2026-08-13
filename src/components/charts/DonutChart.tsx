@@ -32,7 +32,21 @@ function computeSlices(data: DonutSlice[], cx: number, cy: number, ir: number, o
   ).acc;
 }
 
-export function DonutChart({ data, size = 200, ir = 52, or: outer = 80 }: { data: DonutSlice[]; size?: number; ir?: number; or?: number }) {
+export function DonutChart({
+  data,
+  size = 200,
+  ir = 52,
+  or: outer = 80,
+  centerFmt = fmtAxis,
+  legendFmt = fmtKr,
+}: {
+  data: DonutSlice[];
+  size?: number;
+  ir?: number;
+  or?: number;
+  centerFmt?: (v: number) => string;
+  legendFmt?: (v: number) => string;
+}) {
   const cx = size / 2;
   const cy = size / 2;
   const total = data.reduce((s, d) => s + Math.max(0, d.value || 0), 0);
@@ -61,7 +75,7 @@ export function DonutChart({ data, size = 200, ir = 52, or: outer = 80 }: { data
           }}
         >
           <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "var(--fs-lg)", color: "var(--ink)" }}>
-            {fmtAxis(total)}
+            {centerFmt(total)}
           </span>
           <span className="eyebrow" style={{ fontSize: 9.5, marginTop: 2 }}>
             I alt
@@ -72,7 +86,7 @@ export function DonutChart({ data, size = 200, ir = 52, or: outer = 80 }: { data
         {data.map((e, i) => (
           <span key={i} className="flex items-center gap-1.5">
             <span className="dot" style={{ background: e.color }} />
-            {e.name} · {fmtKr(e.value)}
+            {e.name} · {legendFmt(e.value)}
           </span>
         ))}
       </div>

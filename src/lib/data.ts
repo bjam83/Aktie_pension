@@ -11,6 +11,8 @@ import type {
   IncomeStream,
   BudgetItem,
   PensionMeasurement,
+  PensionSchemeFund,
+  PensionFundReturn,
 } from "@/lib/types";
 
 export async function getUser() {
@@ -87,5 +89,17 @@ export async function getBudgetItems(): Promise<BudgetItem[]> {
 export async function getPensionMeasurements(): Promise<PensionMeasurement[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("pension_measurements").select("*").order("measured_on");
+  return data ?? [];
+}
+
+export async function getPensionSchemeFunds(): Promise<PensionSchemeFund[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("pension_scheme_funds").select("*").order("created_at");
+  return data ?? [];
+}
+
+export async function getPensionFundReturns(): Promise<PensionFundReturn[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("pension_fund_returns").select("*").order("year");
   return data ?? [];
 }

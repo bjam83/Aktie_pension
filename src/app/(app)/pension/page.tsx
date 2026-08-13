@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getHouseholdBundle, getPensionSchemes, getPensionMeasurements } from "@/lib/data";
+import { getHouseholdBundle, getPensionSchemes, getPensionMeasurements, getPensionSchemeFunds, getPensionFundReturns } from "@/lib/data";
 import { ageFromBirthDate, projectHousehold, schemeReturnPct, type SchemeCalcInput } from "@/lib/finance/pension";
 import { fmtKr } from "@/lib/finance/format";
 import { personColor, personColorSoft } from "@/lib/constants";
@@ -10,12 +10,32 @@ import { SchemeCard } from "./SchemeCard";
 import { AddSchemeForm } from "./AddSchemeForm";
 import { PersonPensionHeader } from "./PersonPensionHeader";
 import { PensionHistoryCard } from "./PensionHistoryCard";
+import { FundAllocationCard } from "./FundAllocationCard";
+import type { PensionFundReturn } from "@/lib/types";
 
 export default async function PensionPage() {
   const bundle = await getHouseholdBundle();
   if (!bundle) redirect("/login");
   const { persons, assumptions } = bundle;
-  const [schemes, measurements] = await Promise.all([getPensionSchemes(), getPensionMeasurements()]);
+  const [schemes, measurements, schemeFunds, fundReturns] = await Promise.all([
+    getPensionSchemes(),
+    getPensionMeasurements(),
+    getPensionSchemeFunds(),
+    getPensionFundReturns(),
+  ]);
+
+  const fundsByScheme = new Map<string, typeof schemeFunds>();
+  schemeFunds.forEach((f) => {
+    const list = fundsByScheme.get(f.scheme_id) ?? [];
+    list.push(f);
+    fundsByScheme.set(f.scheme_id, list);
+  });
+  const returnsByFund = new Map<string, PensionFundReturn[]>();
+  fundReturns.forEach((r) => {
+    const list = returnsByFund.get(r.fund_id) ?? [];
+    list.push(r);
+    returnsByFund.set(r.fund_id, list);
+  });
 
   const calcInputs: SchemeCalcInput[] = schemes.map((s) => {
     const person = persons.find((p) => p.id === s.person_id);
@@ -100,6 +120,9 @@ export default async function PensionPage() {
                 <SchemeCard key={s.id} scheme={s} persons={persons} color={personColor(i)} />
               ))}
             </div>
+            {list.map((s) => (
+              <FundAllocationCard key={s.id} scheme={s} funds={fundsByScheme.get(s.id) ?? []} returnsByFund={returnsByFund} />
+            ))}
             <PensionHistoryCard
               personId={p.id}
               personName={p.name}
