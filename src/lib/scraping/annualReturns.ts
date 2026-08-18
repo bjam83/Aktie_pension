@@ -90,9 +90,11 @@ export async function fetchAnnualReturns(sourceUrl: string): Promise<ScrapedRetu
     if (entry.dataType !== "DECIMAL") continue;
     const year = isYear(entry.name);
     if (year == null) continue;
-    const value = typeof entry.value === "number" ? entry.value : Number(entry.value);
-    if (!Number.isFinite(value)) continue;
-    if (!byYear.has(year)) byYear.set(year, value);
+    // entry.value is null for years the fund has no data for (e.g. before it existed) — a
+    // "no data" sentinel, not a real 0% return. Number(null) === 0, so this must be checked
+    // explicitly rather than coerced, or those years would silently become fake zero returns.
+    if (typeof entry.value !== "number" || !Number.isFinite(entry.value)) continue;
+    if (!byYear.has(year)) byYear.set(year, entry.value);
   }
 
   const results = Array.from(byYear, ([year, returnPct]) => ({ year, returnPct })).sort((a, b) => a.year - b.year);

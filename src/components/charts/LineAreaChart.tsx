@@ -61,20 +61,32 @@ export function LineAreaChart({ data, series, xKey, height = 280, xFmt, valueFmt
     stacked[k] !== undefined ? stacked[k][i] : d[k] ?? null;
 
   const allY = data.flatMap((d, i) => series.map((s) => getY(d, i, s.key))).filter((v): v is number => v != null);
-  const yMax = Math.max(...allY, 1) * 1.05;
-  const yS = (v: number) => PAD.t + ch * (1 - Math.max(0, v) / yMax);
-  const yBot = PAD.t + ch;
+  // yMin only goes below 0 when the data actually does (e.g. a fund with a losing year) — for
+  // every existing all-non-negative chart this keeps yMin at exactly 0, so nothing changes there.
+  const rawMax = Math.max(...allY, 0);
+  const rawMin = Math.min(...allY, 0);
+  const yMax = Math.max(rawMax, 1) * 1.05;
+  const yMin = rawMin < 0 ? rawMin * 1.05 : 0;
+  const yRange = yMax - yMin || 1;
+  const yS = (v: number) => PAD.t + ch * (1 - (v - yMin) / yRange);
+  const yBot = yS(0);
 
-  // "Nice numbers" tick step (Heckbert's method) — picks a round step near yMax/5 regardless of
-  // magnitude, so narrow-range data (e.g. a few years of pension measurements clustered around
+  // "Nice numbers" tick step (Heckbert's method) — picks a round step near the range/5 regardless
+  // of magnitude, so narrow-range data (e.g. a few years of pension measurements clustered around
   // 1-2 mio.) gets several readable ticks instead of just "0" falling out of the old fixed-ratio search.
-  const rawStep = (yMax || 1) / 5;
+  const rawStep = (yMax - yMin || 1) / 5;
   const stepMag = Math.pow(10, Math.floor(Math.log10(rawStep)));
   const stepNorm = rawStep / stepMag;
   const niceNorm = stepNorm <= 1 ? 1 : stepNorm <= 2 ? 2 : stepNorm <= 2.5 ? 2.5 : stepNorm <= 5 ? 5 : 10;
   const nice = niceNorm * stepMag;
+  // Starting the loop at a multiple of `nice` near yMin (rather than always at 0) extends ticks
+  // below zero when the data does — when yMin is exactly 0 this is still 0, so identical to before.
+  // Bounded to within half a step of yMin (mirroring the loop's own "+ nice * 0.5" tolerance on the
+  // top end) rather than a plain floor(), which can undershoot by up to a full step and push the
+  // lowest tick label below the chart's own height into whatever renders next.
+  const niceMin = Math.ceil((yMin - nice * 0.5) / nice) * nice;
   const yTicks: number[] = [];
-  for (let v = 0; v <= yMax + nice * 0.5; v += nice) yTicks.push(v);
+  for (let v = niceMin; v <= yMax + nice * 0.5; v += nice) yTicks.push(v);
 
   const xStep = Math.max(1, Math.ceil(data.length / 6));
   const xTicks = data.filter((_, i) => i === 0 || i === data.length - 1 || i % xStep === 0);
