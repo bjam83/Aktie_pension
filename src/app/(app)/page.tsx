@@ -129,8 +129,19 @@ export default async function DashboardPage() {
     return { view, proj, frieMidlerSim, assetsTotal, liabilitiesTotal };
   }
 
+  // Each person's view is computed independently and defensively — a bad
+  // record for one person (or a transient data hiccup) shouldn't crash the
+  // whole dashboard for the household. Anything that fails is simply left
+  // out of `views`; OverblikHero falls back to the household view (or a
+  // zeroed view) for a personId it can't find.
   const views: Record<string, OverblikView> = {};
-  for (const p of persons) views[p.id] = buildView(p.id).view;
+  for (const p of persons) {
+    try {
+      views[p.id] = buildView(p.id).view;
+    } catch (err) {
+      console.error(`Overblik: failed to build view for person ${p.id}`, err);
+    }
+  }
 
   // ── Household view + samlet formue over tid — the chart doesn't follow the
   // person filter (a true per-person yearly projection is out of scope this

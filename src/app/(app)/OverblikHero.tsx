@@ -19,6 +19,24 @@ export interface OverblikView {
   accountCount: number;
 }
 
+// Guaranteed fallback so a missing/unexpected `views` entry (a stored personId
+// for a person who no longer exists, or any other lookup miss) renders a safe
+// zeroed view instead of crashing — this was previously an unguarded lookup
+// and caused an intermittent production 500 on "/".
+const EMPTY_VIEW: OverblikView = {
+  netWorthNow: 0,
+  netWorthAtRetirement: 0,
+  pensionNow: 0,
+  pensionAtRetirement: 0,
+  frieMidlerNow: 0,
+  frieMidlerAtRetirement: 0,
+  surplus: 0,
+  disposableAtRetirement: 0,
+  liabilitiesTotal: 0,
+  schemeCount: 0,
+  accountCount: 0,
+};
+
 /**
  * Reads the global person + perspective context and renders the matching slice
  * of pre-computed data. All the underlying math (projectHousehold, combineFreeFunds
@@ -35,7 +53,7 @@ export function OverblikHero({
   inflationRate: number;
 }) {
   const { personId, perspective } = useHouseholdView();
-  const view = views[personId] ?? views[HOUSEHOLD_FILTER];
+  const view = views[personId] ?? views[HOUSEHOLD_FILTER] ?? EMPTY_VIEW;
   const atRetirement = perspective === "retirement";
 
   const netWorth = atRetirement ? view.netWorthAtRetirement : view.netWorthNow;
