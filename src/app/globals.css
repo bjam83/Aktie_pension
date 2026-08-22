@@ -1,23 +1,57 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Design tokens — carried over from the original localStorage app
+   Design tokens — "Industry": a wireframe/blueprint system, steel-blue on a
+   light technical ground. Existing token *names* are kept so every component
+   that already reads var(--grow) etc. repaints automatically; only the
+   values change. Legacy per-concept names (--grow/--real/--amber/--s2) now
+   resolve to steps of the one accent ramp (or neutral/ink) rather than
+   separate hues — this is a deliberately monochrome system, see readme in
+   the imported design spec. --danger is the one kept exception (destructive
+   actions, validation errors).
    ============================================================ */
 :root {
-  --paper: #F4F5F2;
-  --surface: #FFFFFF;
-  --ink: #1C2A27;
-  --muted: #6B7B76;
-  --faint: #7E8F89;
-  --line: #E2E6E0;
-  --grow: #1F7A6B;
-  --grow-soft: #7FB9AC;
-  --s2: #3E6E96;
-  --s2-soft: #9DBBD4;
-  --real: #B25A38;
-  --amber: #A87A20;
-  --amber-soft: #E2C788;
-  --indbetalt: #AEB9B3;
+  --paper: #F2F2F3;
+  --surface: #E9E9EA;
+  --ink: #1D1F20;
+  --muted: #5D5D60;
+  --faint: #7A7A7D;
+  --line: color-mix(in srgb, #1D1F20 16%, transparent);
+
+  /* Accent ramp (OKLCH-generated tonal scale, one hue) — 100 lightest to 900 darkest. */
+  --accent-100: #EEF6FF;
+  --accent-200: #D6EBFF;
+  --accent-300: #B5D9FD;
+  --accent-400: #94BCE3;
+  --accent-500: #749DC4;
+  --accent-600: #597EA3;
+  --accent-700: #416180;
+  --accent-800: #2C455D;
+  --accent-900: #1D2D3D;
+
+  /* Neutral ramp, same lightness scale as the accent ramp. */
+  --neutral-100: #F5F5F8;
+  --neutral-200: #E7E7EA;
+  --neutral-300: #D4D4D7;
+  --neutral-400: #B7B7BA;
+  --neutral-500: #98989B;
+  --neutral-600: #7A7A7D;
+  --neutral-700: #5D5D60;
+  --neutral-800: #424244;
+  --neutral-900: #2B2B2D;
+
+  /* Legacy per-concept names, repointed onto the ramps above — kept so every
+     existing call site (untouched pages included) repaints without a code
+     change; distinct enough steps that multi-series charts (net worth
+     composition etc.) still read as separate layers. */
+  --grow: #5980A6;            /* the one accent, base step */
+  --grow-soft: var(--accent-400);
+  --s2: var(--accent-800);
+  --s2-soft: var(--accent-300);
+  --real: #1D1F20;            /* ink — present-value/secondary lines are dashed ink, not a hue */
+  --amber: var(--accent-700); /* warnings: a deep accent step, not a separate hue */
+  --amber-soft: var(--accent-200);
+  --indbetalt: var(--neutral-300);
   --danger: #C23E3E;
 
   /* Type scale — every font-size in the app resolves to one of these steps. */
@@ -30,9 +64,19 @@
   --fs-xl: 22px;
   --fs-2xl: 26px;
 
-  /* Elevation — one soft, consistent shadow used for every raised surface. */
-  --shadow-card: 0 1px 2px rgba(28, 42, 39, 0.04), 0 10px 24px -14px rgba(28, 42, 39, 0.16);
-  --shadow-pop: 0 4px 10px rgba(28, 42, 39, 0.06), 0 16px 32px -12px rgba(28, 42, 39, 0.22);
+  /* Radius — square everywhere; cards/buttons/inputs are line-drawn "blueprint"
+     objects, not soft filled blocks. Kept as tokens (rather than bare 0s
+     inline) so a future theme could reintroduce rounding in one place. */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+
+  /* Elevation — only for things that actually float above the page (the
+     chart tooltip, a future Sheet/dialog); cards themselves are bordered
+     line drawings, not elevated surfaces, so they no longer use these. */
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #2B2B2D 14%, transparent);
+  --shadow-card: 0 1px 2px color-mix(in srgb, #2B2B2D 14%, transparent);
+  --shadow-pop: 0 12px 32px color-mix(in srgb, #2B2B2D 22%, transparent);
 }
 
 @theme inline {
@@ -91,12 +135,38 @@ body {
   font-weight: 600;
 }
 
+/* Cards are "blueprint" line drawings — bordered, transparent, square-cornered,
+   with a small "+" registration mark at each corner — never a filled, shadowed,
+   rounded surface. The four marks are drawn by a single pseudo-element (8
+   comma-separated 1px-line gradients, one pair per corner) rather than the design
+   spec's literal four <i class="corner"> child elements, so this rule alone
+   reskins every existing card site-wide with no markup changes anywhere. */
 .card {
-  background: var(--surface);
+  position: relative;
+  background: transparent;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   padding: 18px;
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
+}
+.card::before, .stat::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  pointer-events: none;
+  --tick: color-mix(in srgb, var(--ink) 55%, transparent);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick));
+  background-size: 1px 11px, 11px 1px, 1px 11px, 11px 1px, 1px 11px, 11px 1px, 1px 11px, 11px 1px;
+  background-position:
+    left 5px top 0, left 0 top 5px,
+    right 5px top 0, right 0 top 5px,
+    left 5px bottom 0, left 0 bottom 5px,
+    right 5px bottom 0, right 0 bottom 5px;
 }
 
 .card h3 {
@@ -127,7 +197,7 @@ body {
   color: var(--ink);
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   padding: 9px 11px;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -139,24 +209,49 @@ body {
 
 .input:focus {
   border-color: var(--grow);
-  box-shadow: 0 0 0 3px rgba(31, 122, 107, 0.14);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--grow) 14%, transparent);
 }
 
+/* The primary button is the one solid, filled "blueprint" object — square-cornered,
+   accent-filled, still carrying the corner marks (reusing the same trick as .card,
+   just with paper-toned ticks so they read against the accent fill). Ghost/danger
+   variants stay unfilled and skip the marks — they're not the primary action. */
 .btn {
+  position: relative;
   appearance: none;
   cursor: pointer;
   font-family: var(--font-display), system-ui, sans-serif;
   font-weight: 500;
   font-size: var(--fs-base);
   background: var(--grow);
-  color: #fff;
+  color: var(--paper);
   border: none;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   padding: 9px 15px;
   transition: filter 0.15s, transform 0.1s, background-color 0.15s;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.btn:not(.ghost)::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  pointer-events: none;
+  --tick: color-mix(in srgb, var(--paper) 70%, transparent);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)), linear-gradient(var(--tick), var(--tick));
+  background-size: 1px 11px, 11px 1px, 1px 11px, 11px 1px, 1px 11px, 11px 1px, 1px 11px, 11px 1px;
+  background-position:
+    left 5px top 0, left 0 top 5px,
+    right 5px top 0, right 0 top 5px,
+    left 5px bottom 0, left 0 bottom 5px,
+    right 5px bottom 0, right 0 bottom 5px;
 }
 
 .btn:hover {
@@ -217,7 +312,7 @@ body {
   gap: 6px;
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 4px 10px;
   font-size: var(--fs-xs);
   font-family: var(--font-display), system-ui, sans-serif;
@@ -232,12 +327,15 @@ body {
   flex-shrink: 0;
 }
 
+/* Same blueprint treatment as .card (bordered line-drawing, corner marks via
+   the shared ::before rule above) — a stat is just a smaller card. */
 .stat {
-  background: var(--surface);
+  position: relative;
+  background: transparent;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 14px 15px;
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
 }
 
 .stat .lab {
@@ -306,14 +404,127 @@ body {
   padding: 26px 10px;
 }
 
+/* ListRow — name/subtext/value/chevron, min 52px tall. Stack rows inside a
+   .card (or any bordered container) with .lrow-list for the between-row rule;
+   the rows themselves carry no border of their own. */
+.lrow-list > .lrow + .lrow {
+  border-top: 1px solid var(--line);
+}
+
+.lrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 2px;
+  background: none;
+  border: none;
+  text-align: left;
+  text-decoration: none;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.12s;
+}
+
+.lrow:hover {
+  background: color-mix(in srgb, var(--grow) 5%, transparent);
+}
+
+.lrow-icon {
+  flex-shrink: 0;
+  display: flex;
+  color: var(--muted);
+}
+
+.lrow-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.lrow-label {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 500;
+  font-size: var(--fs-md);
+}
+
+.lrow-sub {
+  font-size: var(--fs-xs);
+  color: var(--faint);
+}
+
+.lrow-value {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: var(--fs-base);
+  flex-shrink: 0;
+}
+
+.lrow-chevron {
+  flex-shrink: 0;
+  color: var(--faint);
+}
+
+/* A note is a callout, not a boxed card — a left accent rule, per the design
+   spec's "Forklaringsark" grammar, no fill or full border. */
 .note {
   font-size: var(--fs-sm);
   color: var(--muted);
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 11px 13px;
+  border-left: 2px solid var(--grow);
+  padding: 2px 0 2px 12px;
   line-height: 1.55;
+}
+
+/* Segmented control — hidden radio inputs + :has(), one shared class used by
+   the header's person/perspective switchers and any future choice-of-few UI. */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.seg-opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 7px 12px;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.seg-opt + .seg-opt {
+  border-left: 1px solid var(--line);
+}
+
+.seg-opt input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.seg-opt:hover {
+  color: var(--ink);
+}
+
+.seg-opt:has(input:checked) {
+  background: var(--grow);
+  color: var(--paper);
+}
+
+.seg-opt:has(input:focus-visible) {
+  outline: 2px solid var(--grow);
+  outline-offset: -2px;
 }
 
 .tabnav {
@@ -330,7 +541,7 @@ body {
   color: var(--muted);
   padding: 9px 14px 12px;
   position: relative;
-  border-radius: 6px 6px 0 0;
+  border-radius: 0;
   text-decoration: none;
   transition: color 0.15s;
 }
@@ -425,7 +636,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 11px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--paper);
   border: 1px solid var(--line);
   color: var(--ink);
@@ -438,6 +649,98 @@ body {
 .bnav-sheet-item[data-active="true"] {
   color: var(--grow);
   border-color: var(--grow);
+}
+
+/* Sheet — the slide-up (mobile) / right-panel (desktop) primitive that
+   replaces inline <details> edit forms in the redesigned pages. Square
+   corners, hairline border, no corner marks (it floats above the page, it's
+   not a blueprint object on the board) — elevated via --shadow-pop. */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--ink) 32%, transparent);
+  z-index: 300;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.sheet-backdrop[data-visible="true"] {
+  opacity: 1;
+}
+
+.sheet {
+  position: fixed;
+  z-index: 301;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: min(88vh, 720px);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  transform: translateY(100%);
+  transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  outline: none;
+}
+.sheet[data-visible="true"] {
+  transform: translateY(0);
+}
+
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  margin: 10px auto 2px;
+  flex-shrink: 0;
+  touch-action: none;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 18px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.sheet-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: var(--fs-lg);
+}
+
+.sheet-body {
+  padding: 16px 18px calc(22px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+  .sheet {
+    left: auto;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: min(420px, 92vw);
+    max-height: none;
+    transform: translateX(100%);
+  }
+  .sheet[data-visible="true"] {
+    transform: translateX(0);
+  }
+  .sheet-handle {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .sheet-backdrop {
+    transition-duration: 1ms !important;
+  }
 }
 
 .cols-2 {
@@ -481,7 +784,6 @@ body {
   }
   .card {
     padding: 14px;
-    border-radius: 12px;
   }
 }
 

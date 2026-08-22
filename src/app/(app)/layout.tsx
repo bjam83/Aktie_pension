@@ -30,5 +30,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
-  return <Shell householdName={bundle.household.household_name || "Husstand"}>{children}</Shell>;
+  return (
+    <Shell householdName={bundle.household.household_name || "Husstand"} persons={bundle.persons}>
+      {children}
+    </Shell>
+  );
 }
