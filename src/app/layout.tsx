@@ -1,17 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow, Barlow_Condensed } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-// Variable names kept as --font-inter/--font-space-grotesk (not renamed to
-// match the new fonts) so globals.css's --font-body/--font-display
-// indirection needs no change — only the font family loaded here changes.
-const inter = Barlow({
+const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
 
-const spaceGrotesk = Barlow_Condensed({
+const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -32,7 +29,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#5980A6",
+  themeColor: "#1F7A6B",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
