@@ -5,14 +5,36 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { NAV_ITEMS } from "./nav-items";
 import { signOutAction } from "@/lib/actions/auth";
+import { HOUSEHOLD_FILTER, PersonFilterProvider, usePersonFilter } from "./PersonFilterContext";
+import type { Person } from "@/lib/types";
 
 const MORE_ICON = "M12 6.5v.01M12 12v.01M12 17.5v.01";
 
+function PersonFilterBar({ persons }: { persons: Person[] }) {
+  const { personId, setPersonId } = usePersonFilter();
+  if (persons.length <= 1) return null;
+
+  return (
+    <div className="flex flex-wrap gap-[8px] mt-[14px]" role="group" aria-label="Filtrér på person">
+      <button type="button" className="chip" data-active={personId === HOUSEHOLD_FILTER} onClick={() => setPersonId(HOUSEHOLD_FILTER)}>
+        Hele husstanden
+      </button>
+      {persons.map((p) => (
+        <button key={p.id} type="button" className="chip" data-active={personId === p.id} onClick={() => setPersonId(p.id)}>
+          {p.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Shell({
   householdName,
+  persons,
   children,
 }: {
   householdName: string;
+  persons: Person[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -24,6 +46,7 @@ export function Shell({
   const isSecondaryActive = secondaryItems.some((i) => i.href === pathname);
 
   return (
+    <PersonFilterProvider>
     <div className="min-h-screen">
       <div className="mx-auto max-w-[1120px] px-[22px] pt-7 app-main">
         <div className="flex items-start justify-between gap-4">
@@ -37,6 +60,8 @@ export function Shell({
             </button>
           </form>
         </div>
+
+        <PersonFilterBar persons={persons} />
 
         <nav className="tabnav mt-[22px] mb-[18px]">
           {NAV_ITEMS.map((item) => (
@@ -82,5 +107,6 @@ export function Shell({
         </div>
       </nav>
     </div>
+    </PersonFilterProvider>
   );
 }

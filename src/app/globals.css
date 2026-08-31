@@ -224,6 +224,18 @@ body {
   color: var(--ink);
 }
 
+button.chip {
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+button.chip[data-active="true"] {
+  background: var(--grow);
+  border-color: var(--grow);
+  color: #fff;
+}
+
 .dot {
   width: 9px;
   height: 9px;
